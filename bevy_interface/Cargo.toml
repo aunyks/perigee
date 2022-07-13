@@ -1,0 +1,28 @@
+[package]
+name = "bevy_interface"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+codegen-units = 1
+
+[profile.dev.package.bevy]
+opt-level = 1
+
+[profile.dev.package.bevy_rapier3d]
+opt-level = 3
+
+[dependencies]
+perigee_single_player = { package = "single_player", path = "../single_player" }
+
+# https://github.com/bevyengine/bevy
+bevy = { version = "0.7.0" }
+
+# https://github.com/alexcrichton/toml-rs
+toml = { version = "0.5.8" }
+
+# https://github.com/serde-rs/serde
+serde = { version = "1.0.97", features = ["derive"] }
+
+# https://github.com/aunyks/bevy_fly_camera
+bevy_fly_camera = { git = "https://github.com/aunyks/bevy_fly_camera" }

@@ -1,0 +1,15 @@
+[package]
+name = "single_player"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+perigee_core = { package = "core", path = "../core" }
+
+# https://github.com/Ralith/hecs
+hecs = { version = "0.7.6" }
+
+# https://github.com/serde-rs/serde
+serde = { version = "1.0.97", features = ["derive"] }

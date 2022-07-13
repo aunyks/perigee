@@ -1,0 +1,14 @@
+{
+  "name": "single_player_ffi_wasm",
+  "version": "0.1.0",
+  "description": "",
+  "main": "test.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Gerald Nash <me@aunyks.com> (https://aunyks.com)",
+  "license": "ISC",
+  "dependencies": {
+    "jest": "^28.1.0"
+  }
+}

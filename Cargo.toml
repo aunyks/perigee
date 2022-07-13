@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    # Core components (player, settings, config, physics, etc)
+    "core",
+    # Simulation structures that define single player levels
+    "single_player",
+    # FFI wrappers for single_player for C and WASM
+    "single_player_ffi",
+    # An interface for visualizing / playing the game
+    "bevy_interface"
+]
+resolver = "2"

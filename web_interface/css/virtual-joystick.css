@@ -1,0 +1,16 @@
+#virtual-joystick-container {
+    bottom: 70px;
+    left: 30px;
+}
+
+#virtual-joystick {
+    fill: rgba(48, 48, 48, 0.8);
+    stroke: white;
+    stroke-width: 5px;
+    user-select: none;
+    position: absolute;
+}
+
+#virtual-joystick.active {
+    fill: rgba(48, 48, 48, 0.4);
+}

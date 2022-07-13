@@ -1,0 +1,7 @@
+target/
+node_modules/
+*.bu
+bevy_interface/assets/*
+!bevy_interface/assets/.gitkeep
+.DS_Store
+*.blend1
