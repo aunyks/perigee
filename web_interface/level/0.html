@@ -371,7 +371,7 @@
         const animatedCamera = animatedCameraGltf.cameras[0]
         animatedCamera.fov = 35
         animatedCamera.aspect = sceneContainer.clientWidth / sceneContainer.clientHeight
-        animatedCamera.near = 0.1
+        animatedCamera.near = 0.01
         animatedCamera.far = 100
         const cameraRig = new Object3D()
         cameraRig.add(animatedCameraGltf.scene)

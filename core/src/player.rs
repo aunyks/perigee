@@ -499,12 +499,12 @@ impl<'a> Player<'a> {
         let untransformed_jump_direction_vector = vector![0.0, 2.0, -2.0];
         // And also away from the wall
         let jump_vector = match self.wallrunning_state.current_state() {
-            WallRunning::OnRight(wall_normal) => {
-                (wall_normal + untransformed_jump_direction_vector)
+            WallRunning::OnRight(untransformed_wall_normal) => {
+                (untransformed_wall_normal + untransformed_jump_direction_vector)
                     * self.config.jump_wallrunning_scale()
             }
-            WallRunning::OnLeft(wall_normal) => {
-                (wall_normal + untransformed_jump_direction_vector)
+            WallRunning::OnLeft(untransformed_wall_normal) => {
+                (untransformed_wall_normal + untransformed_jump_direction_vector)
                     * self.config.jump_wallrunning_scale()
             }
             WallRunning::None => vector![0.0, 1.0, 0.0],
@@ -607,15 +607,7 @@ impl<'a> Player<'a> {
                 self.query_filter_excluding_player,
             ) {
                 let ray_normal = ray_intersection.normal;
-                let untransformed_right_wall_ray_dir =
-                    body_isometry.inverse_transform_vector(&right_wall_ray.dir);
-                let right_wall_ray_dir_mirrored_x = body_isometry.transform_vector(&vector![
-                    -untransformed_right_wall_ray_dir.x,
-                    untransformed_right_wall_ray_dir.y,
-                    untransformed_right_wall_ray_dir.z
-                ]);
-                let transformed_wall_normal =
-                    (right_wall_ray_dir_mirrored_x + ray_normal).normalize();
+                let transformed_wall_normal = (-right_wall_ray.dir + ray_normal).normalize();
                 let wall_normal = body_isometry.inverse_transform_vector(&transformed_wall_normal);
                 self.wallrunning_state
                     .transition_to(WallRunning::OnRight(wall_normal));
@@ -633,15 +625,7 @@ impl<'a> Player<'a> {
                 self.query_filter_excluding_player,
             ) {
                 let ray_normal = ray_intersection.normal;
-                let untransformed_left_wall_ray_dir =
-                    body_isometry.inverse_transform_vector(&left_wall_ray.dir);
-                let left_wall_ray_dir_mirrored_x = body_isometry.transform_vector(&vector![
-                    -untransformed_left_wall_ray_dir.x,
-                    untransformed_left_wall_ray_dir.y,
-                    untransformed_left_wall_ray_dir.z
-                ]);
-                let transformed_wall_normal =
-                    (left_wall_ray_dir_mirrored_x + ray_normal).normalize();
+                let transformed_wall_normal = (-left_wall_ray.dir + ray_normal).normalize();
                 let wall_normal = body_isometry.inverse_transform_vector(&transformed_wall_normal);
                 self.wallrunning_state
                     .transition_to(WallRunning::OnLeft(wall_normal));
@@ -683,33 +667,30 @@ impl<'a> Player<'a> {
         query_pipeline: &mut QueryPipeline,
         collider_set: &mut ColliderSet,
     ) -> bool {
-        let body_handle = self.body_handle();
         let body_isometry = self.body_isometry();
-        if rigid_body_set.get_mut(body_handle).is_some() {
-            // Make sure there's enough space for the standing collider to fit.
-            // If so, we can stand. If not, we can't.
-            let above_head_ray = Ray::new(
-                point![0.0, self.config.capsule_crouched_total_height() / 2.0, 0.0],
-                vector![0.0, 1.0, 0.0],
+        let standing_collider = self.build_collider(
+            self.config.capsule_standing_half_height(),
+            self.config.capsule_standing_radius(),
+        );
+        let standing_shape = standing_collider.shape();
+        let distance_between_standing_and_crouched_heights =
+            self.config.capsule_standing_total_height()
+                - self.config.capsule_crouched_total_height();
+        let mut standing_isometry = body_isometry.clone();
+        standing_isometry.translation.y += distance_between_standing_and_crouched_heights;
+        if query_pipeline
+            .cast_shape(
+                &rigid_body_set,
+                &collider_set,
+                &standing_isometry,
+                &vector![0.0, 1.0, 0.0],
+                standing_shape,
+                0.0,
+                query_filter_excluding_player(),
             )
-            .transform_by(&body_isometry);
-
-            let distance_between_standing_and_crouched_heights =
-                self.config.capsule_standing_total_height()
-                    - self.config.capsule_crouched_total_height();
-            if query_pipeline
-                .cast_ray(
-                    &rigid_body_set,
-                    collider_set,
-                    &above_head_ray,
-                    COLLIDER_RAYCAST_OFFSET + distance_between_standing_and_crouched_heights,
-                    false,
-                    self.query_filter_excluding_player,
-                )
-                .is_some()
-            {
-                return false;
-            }
+            .is_some()
+        {
+            return false;
         }
         true
     }
