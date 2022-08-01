@@ -262,6 +262,7 @@ impl<'a> Player<'a> {
 
         if previous_tick_is_sliding != self.is_sliding {
             if self.is_sliding {
+                self.start_sliding(&mut physics.rigid_body_set);
                 game_events.enqueue(PlayerEvent::StartedSliding.into());
             } else {
                 game_events.enqueue(PlayerEvent::StoppedSliding.into());
@@ -338,7 +339,7 @@ impl<'a> Player<'a> {
                 // If we're moving fast enough, then this is a slide.
                 // Otherwise it's a normal crouch
                 if self.body_linear_velocity.xz().magnitude()
-                    < self.config.slide_factor() * self.config.max_standing_move_speed()
+                    < self.config.sliding_speed_factor() * self.config.max_standing_move_speed()
                 {
                     game_events.enqueue(PlayerEvent::Crouched.into());
                 }
@@ -362,7 +363,9 @@ impl<'a> Player<'a> {
             _ => {}
         }
 
-        self.footstep_timer.tick(delta_seconds);
+        if !self.is_sliding {
+            self.footstep_timer.tick(delta_seconds);
+        }
         // If we're wallrunning or on the ground, we should
         // make a note of when a step was taken. The frequency of
         // steps is a function of our speed.
@@ -463,41 +466,40 @@ impl<'a> Player<'a> {
         max_speed: f32,
         rigid_body_set: &mut RigidBodySet,
     ) {
-        let movement_vector = vector![left_right_magnitude, 0.0, forward_back_magnitude];
-        let trying_to_move = movement_vector.magnitude() != 0.0;
-        let max_velocity: Vector<f32> = if trying_to_move {
-            // If we don't have this check, we'd be dividing 0 by 0 and
-            // have a vector of NaNs
-            movement_vector.cap_magnitude(1.0) * max_speed
-        } else {
-            movement_vector * max_speed
-        };
+        if !self.is_sliding {
+            let movement_vector = vector![left_right_magnitude, 0.0, forward_back_magnitude];
+            let trying_to_move = movement_vector.magnitude() != 0.0;
+            let max_velocity: Vector<f32> = if trying_to_move {
+                // If we don't have this check, we'd be dividing 0 by 0 and
+                // have a vector of NaNs
+                movement_vector.cap_magnitude(1.0) * max_speed
+            } else {
+                movement_vector * max_speed
+            };
 
-        let body_handle = self.body_handle();
-        if let Some(body) = rigid_body_set.get_mut(body_handle) {
-            // Note: The two value is already transformed by the body
-            // isometry
-            let current_velocity: Vector<f32> = *body.linvel();
+            let current_velocity = self.body_linear_velocity;
+            let body_handle = self.body_handle();
+            if let Some(body) = rigid_body_set.get_mut(body_handle) {
+                // The max velocity transformed by the isometry (position & orientation)
+                // of the player.
+                let transformed_max_velocity = body.position().transform_vector(&max_velocity);
+                // The player isometry-transformed max velocity rotated to point in the
+                // direction of the slope the player is currently on
+                let vertical_transformed_max_velocity =
+                    project_on_plane(&transformed_max_velocity, &self.ground_normal);
 
-            // The max velocity transformed by the isometry (position & orientation)
-            // of the player.
-            let transformed_max_velocity = body.position().transform_vector(&max_velocity);
-            // The player isometry-transformed max velocity rotated to point in the
-            // direction of the slope the player is currently on
-            let vertical_transformed_max_velocity =
-                project_on_plane(&transformed_max_velocity, &self.ground_normal);
+                let goal_velocity = move_towards(
+                    &vertical_transformed_max_velocity,
+                    &current_velocity,
+                    max_move_acceleration * delta_seconds,
+                );
 
-            let goal_velocity = move_towards(
-                &vertical_transformed_max_velocity,
-                &current_velocity,
-                max_move_acceleration * delta_seconds,
-            );
+                let acceleration = ((goal_velocity - current_velocity) / delta_seconds)
+                    .cap_magnitude(max_move_acceleration);
 
-            let acceleration = ((goal_velocity - current_velocity) / delta_seconds)
-                .cap_magnitude(max_move_acceleration);
-
-            body.reset_forces(true);
-            body.add_force(acceleration * body.mass(), true);
+                body.reset_forces(true);
+                body.add_force(acceleration * body.mass(), true);
+            }
         }
     }
 
@@ -601,12 +603,14 @@ impl<'a> Player<'a> {
         let body_handle = self.body_handle();
         let body_isometry = self.body_isometry();
         let ray_distance_from_body = self.config.wallrunning_ray_length();
-        if let Some(body) = rigid_body_set.get_mut(body_handle) {
+        let body_linear_velocity = self.body_linear_velocity;
+        if rigid_body_set.get(body_handle).is_some() {
             // Can only wallrun if moving forward enough
             let transformed_forward_vector = self
                 .body_isometry()
                 .transform_vector(&vector![0.0, 0.0, -1.0]);
-            if body.linvel().dot(&transformed_forward_vector) <= self.config.wallrunning_dot_value()
+            if body_linear_velocity.dot(&transformed_forward_vector)
+                <= self.config.wallrunning_dot_value()
             {
                 self.wallrunning_state.transition_to(WallRunning::None);
                 return;
@@ -653,10 +657,18 @@ impl<'a> Player<'a> {
     }
 
     fn determine_sliding_state(&mut self) {
+        let body_isometry = self.body_isometry();
+        let non_vertical_velocity = self.body_linear_velocity.xz();
+
         self.is_sliding = self.is_grounded
             && self.crouch_state.current_state() == &CrouchState::Crouched
-            && self.body_linear_velocity.xz().magnitude()
-                >= self.config.slide_factor() * self.config.max_standing_move_speed();
+            && non_vertical_velocity.dot(
+                &body_isometry
+                    .transform_vector(&vector![0.0, 0.0, -1.0])
+                    .xz(),
+            ) >= self.config.sliding_forward_factor()
+            && non_vertical_velocity.magnitude()
+                >= self.config.sliding_speed_factor() * self.config.max_standing_move_speed();
     }
 
     /// Tilt the head of the player about the Z axis based on the current wall running state.
@@ -728,17 +740,24 @@ impl<'a> Player<'a> {
         collider_set: &mut ColliderSet,
         island_manager: &mut IslandManager,
     ) {
+        let mut new_pos = self.body_isometry();
+        let distance_between_standing_and_crouched_heights =
+            self.config.capsule_standing_total_height()
+                - self.config.capsule_crouched_total_height();
+
         if let Some(body) = rigid_body_set.get_mut(self.body_handle()) {
             // Toggle crouch state
             self.crouch_state
                 .transition_to(match self.crouch_state.current_state() {
-                    CrouchState::Upright => CrouchState::Crouched,
+                    CrouchState::Upright => {
+                        // Put the smaller collider straight on the ground
+                        new_pos.translation.y -=
+                            distance_between_standing_and_crouched_heights / 2.0;
+                        body.set_position(new_pos, true);
+                        CrouchState::Crouched
+                    }
                     CrouchState::Crouched => {
                         // Prevent any intersections between the larger collider and the ground
-                        let mut new_pos = self.body_isometry();
-                        let distance_between_standing_and_crouched_heights =
-                            self.config.capsule_standing_total_height()
-                                - self.config.capsule_crouched_total_height();
                         new_pos.translation.y +=
                             distance_between_standing_and_crouched_heights / 2.0;
                         body.set_position(new_pos, true);
@@ -775,6 +794,26 @@ impl<'a> Player<'a> {
     fn stop_wallrunning(&mut self, rigid_body_set: &mut RigidBodySet) {
         if let Some(body) = rigid_body_set.get_mut(self.body_handle()) {
             body.set_gravity_scale(1.0, true);
+        }
+    }
+
+    fn start_sliding(&mut self, rigid_body_set: &mut RigidBodySet) {
+        let body_isometry = self.body_isometry();
+        let current_velocity = self.body_linear_velocity;
+        if let Some(body) = rigid_body_set.get_mut(self.body_handle()) {
+            let sliding_deceleration: Vector3<f32> = self.config.sliding_deceleration().into();
+            let transformed_sliding_deceleration =
+                body_isometry.transform_vector(&sliding_deceleration);
+            let sliding_velocity_increase: Vector3<f32> =
+                self.config.sliding_velocity_increase().into();
+            let transformed_sliding_velocity_increase =
+                body_isometry.transform_vector(&sliding_velocity_increase);
+            body.reset_forces(true);
+            body.set_linvel(
+                current_velocity + transformed_sliding_velocity_increase,
+                true,
+            );
+            body.add_force(transformed_sliding_deceleration * body.mass(), true);
         }
     }
 }

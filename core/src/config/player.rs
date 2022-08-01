@@ -118,7 +118,19 @@ pub struct PlayerConfig {
     /// How much of the max standing speed must the player
     /// be moving in order to slide when the crouch input is hit.
     #[serde(default)]
-    pub slide_factor: f32,
+    pub sliding_speed_factor: f32,
+    /// How straightforward the player must be moving
+    /// before entering a slide.
+    #[serde(default)]
+    pub sliding_forward_factor: f32,
+    /// The acceleration vector applied to the rigid body
+    /// when the player starts sliding.
+    #[serde(default)]
+    pub sliding_deceleration: [f32; 3],
+    /// The increase in velocity applied to the rigid
+    /// body when the player starts sliding.
+    #[serde(default)]
+    pub sliding_velocity_increase: [f32; 3],
 }
 
 impl Default for PlayerConfig {
@@ -165,7 +177,10 @@ impl Default for PlayerConfig {
             start_wallrunning_gravity_scale: 0.5,
             grounded_seconds_per_footstep: 1.0 / 4.0,
             wallrunning_seconds_per_footstep: 1.0 / 6.0,
-            slide_factor: 0.8,
+            sliding_speed_factor: 0.8,
+            sliding_forward_factor: 0.8,
+            sliding_velocity_increase: [0.0, 0.0, -6.0],
+            sliding_deceleration: [0.0, 0.0, 4.5],
         }
     }
 }
@@ -347,7 +362,25 @@ impl PlayerConfig {
 
     /// How much of the max standing speed must the player
     /// be moving in order to slide when the crouch input is hit.
-    pub fn slide_factor(&self) -> f32 {
-        self.slide_factor
+    pub fn sliding_speed_factor(&self) -> f32 {
+        self.sliding_speed_factor
+    }
+
+    /// How straightforward the player must be moving
+    /// before entering a slide.
+    pub fn sliding_forward_factor(&self) -> f32 {
+        self.sliding_forward_factor
+    }
+
+    /// The deceleration vector applied to the rigid body
+    /// when the player starts sliding.
+    pub fn sliding_deceleration(&self) -> [f32; 3] {
+        self.sliding_deceleration
+    }
+
+    /// The increase in velocity applied to the rigid
+    /// body when the player starts sliding.
+    pub fn sliding_velocity_increase(&self) -> [f32; 3] {
+        self.sliding_velocity_increase
     }
 }

@@ -395,6 +395,7 @@
         })
 
         let isWallRunning = false
+        let isSliding = false
         sim.events.on(GameEvent.Player.Stepped, () => {
           if(footstepAudio.isPlaying) {
             footstepAudio.stop()
@@ -430,6 +431,25 @@
 
         sim.events.on(GameEvent.Player.StoppedWallRunning, () => {
           isWallRunning = false
+          if(slideAudio.isPlaying) {
+            slideAudio.stop()
+          }
+        })
+
+        sim.events.on(GameEvent.Player.StartedSliding, () => {
+          isSliding = true
+          if(slideAudio.isPlaying) {
+            slideAudio.stop()
+          }
+          slideAudio.detune = 100 * (randomIntFromZero(4) - 2)
+          slideAudio
+            .setVolume(settings.interface.masterVolume * 0.75)
+            .setLoop(true)
+            .play()
+        })
+
+        sim.events.on(GameEvent.Player.StoppedSliding, () => {
+          isSliding = false
           if(slideAudio.isPlaying) {
             slideAudio.stop()
           }
