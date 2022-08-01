@@ -395,7 +395,6 @@
         })
 
         let isWallRunning = false
-        let isSliding = false
         sim.events.on(GameEvent.Player.Stepped, () => {
           if(footstepAudio.isPlaying) {
             footstepAudio.stop()
@@ -437,7 +436,6 @@
         })
 
         sim.events.on(GameEvent.Player.StartedSliding, () => {
-          isSliding = true
           if(slideAudio.isPlaying) {
             slideAudio.stop()
           }
@@ -449,7 +447,6 @@
         })
 
         sim.events.on(GameEvent.Player.StoppedSliding, () => {
-          isSliding = false
           if(slideAudio.isPlaying) {
             slideAudio.stop()
           }
