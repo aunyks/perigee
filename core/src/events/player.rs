@@ -14,6 +14,9 @@ pub enum PlayerEvent {
     Stepped,
     StartedWallRunning,
     StoppedWallRunning,
+    /// Player started sliding on the ground
+    StartedSliding,
+    StoppedSliding,
 }
 
 impl From<PlayerEvent> for u32 {
@@ -28,6 +31,8 @@ impl From<PlayerEvent> for u32 {
             PlayerEvent::Stepped => 6,
             PlayerEvent::StartedWallRunning => 7,
             PlayerEvent::StoppedWallRunning => 8,
+            PlayerEvent::StartedSliding => 9,
+            PlayerEvent::StoppedSliding => 10,
         }
     }
 }

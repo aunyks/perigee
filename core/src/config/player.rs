@@ -115,6 +115,10 @@ pub struct PlayerConfig {
     /// when moving at the max speed while wallrunning.
     #[serde(default)]
     pub wallrunning_seconds_per_footstep: f32,
+    /// How much of the max standing speed must the player
+    /// be moving in order to slide when the crouch input is hit.
+    #[serde(default)]
+    pub slide_factor: f32,
 }
 
 impl Default for PlayerConfig {
@@ -161,6 +165,7 @@ impl Default for PlayerConfig {
             start_wallrunning_gravity_scale: 0.5,
             grounded_seconds_per_footstep: 1.0 / 4.0,
             wallrunning_seconds_per_footstep: 1.0 / 6.0,
+            slide_factor: 0.8,
         }
     }
 }
@@ -338,5 +343,11 @@ impl PlayerConfig {
     /// when moving at the max speed while wallrunning.
     pub fn wallrunning_seconds_per_footstep(&self) -> f32 {
         self.wallrunning_seconds_per_footstep
+    }
+
+    /// How much of the max standing speed must the player
+    /// be moving in order to slide when the crouch input is hit.
+    pub fn slide_factor(&self) -> f32 {
+        self.slide_factor
     }
 }

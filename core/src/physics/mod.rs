@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::config::PhysicsConfig;
 use event_queue::CollisionEventQueue;
 use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemantic};

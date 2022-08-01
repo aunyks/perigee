@@ -52,6 +52,8 @@ const GameEvent = Object.freeze({
     Stepped: PLAYER_EVENT_OFFSET + 6,
     StartedWallRunning: PLAYER_EVENT_OFFSET + 7,
     StoppedWallRunning: PLAYER_EVENT_OFFSET + 8,
+    StartedSliding: PLAYER_EVENT_OFFSET + 9,
+    StoppedSliding: PLAYER_EVENT_OFFSET + 10,
   },
   // Audiovisual events
   AudioVisual: {

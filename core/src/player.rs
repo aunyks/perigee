@@ -59,17 +59,18 @@ pub struct Player<'a> {
     head_z_rotation: Unit<Quaternion<f32>>,
     head_isometry: Isometry<f32, Unit<Quaternion<f32>>, 3>,
     body_isometry: Isometry<f32, Unit<Quaternion<f32>>, 3>,
+    body_linear_velocity: Vector3<f32>,
     rigid_body_handle: RigidBodyHandle,
     is_grounded: bool,
     wallrunning_state: StateMachine<WallRunning>,
     crouch_state: StateMachine<CrouchState>,
     #[serde(skip, default = "query_filter_excluding_player")]
     query_filter_excluding_player: QueryFilter<'a>,
-    is_moving_non_vertically: bool,
     ground_normal: Vector3<f32>,
     footstep_timer: PassiveClock,
     coyote_timer: PassiveClock,
     jump_cooldown_timer: PassiveClock,
+    is_sliding: bool,
 }
 
 impl<'a> Default for Player<'a> {
@@ -83,16 +84,17 @@ impl<'a> Default for Player<'a> {
                 player_config.standing_head_translation_offset(),
             )),
             body_isometry: Isometry::identity(),
+            body_linear_velocity: Vector3::default(),
             rigid_body_handle: RigidBodyHandle::from_raw_parts(0, 0),
             is_grounded: false,
             wallrunning_state: StateMachine::new(WallRunning::None),
             crouch_state: StateMachine::new(CrouchState::Upright),
             query_filter_excluding_player: query_filter_excluding_player(),
-            is_moving_non_vertically: false,
             ground_normal: Vector::y(),
             footstep_timer: PassiveClock::default(),
             coyote_timer: PassiveClock::default(),
             jump_cooldown_timer: PassiveClock::default(),
+            is_sliding: false,
         }
     }
 }
@@ -220,8 +222,13 @@ impl<'a> Player<'a> {
             &mut physics.query_pipeline,
             &mut physics.collider_set,
         );
-        let previous_tick_is_moving_non_vertically = self.is_moving_non_vertically;
-        self.determine_non_vertical_motion(&mut physics.rigid_body_set);
+        let previous_tick_is_moving_non_vertically = self.body_linear_velocity.xz().magnitude()
+            > self.config.nonstationary_speed_threshold();
+        self.determine_linear_velocity(&mut physics.rigid_body_set);
+        let is_moving_non_vertically = self.body_linear_velocity.xz().magnitude()
+            > self.config.nonstationary_speed_threshold();
+        let previous_tick_is_sliding = self.is_sliding;
+        self.determine_sliding_state();
 
         if previous_tick_grounded_state != self.is_grounded {
             // We've just landed
@@ -253,10 +260,21 @@ impl<'a> Player<'a> {
         }
         self.tilt_head();
 
+        if previous_tick_is_sliding != self.is_sliding {
+            if self.is_sliding {
+                game_events.enqueue(PlayerEvent::StartedSliding.into());
+            } else {
+                game_events.enqueue(PlayerEvent::StoppedSliding.into());
+                if self.is_grounded && self.crouch_state.current_state() == &CrouchState::Crouched {
+                    game_events.enqueue(PlayerEvent::Crouched.into());
+                }
+            }
+        }
+
         if self.is_grounded {
             match (
                 previous_tick_is_moving_non_vertically,
-                self.is_moving_non_vertically,
+                is_moving_non_vertically,
             ) {
                 (true, false) => {
                     game_events.enqueue(PlayerEvent::Stopped.into());
@@ -317,7 +335,13 @@ impl<'a> Player<'a> {
                     &mut physics.collider_set,
                     &mut physics.island_manager,
                 );
-                game_events.enqueue(PlayerEvent::Crouched.into());
+                // If we're moving fast enough, then this is a slide.
+                // Otherwise it's a normal crouch
+                if self.body_linear_velocity.xz().magnitude()
+                    < self.config.slide_factor() * self.config.max_standing_move_speed()
+                {
+                    game_events.enqueue(PlayerEvent::Crouched.into());
+                }
             }
             (false, &CrouchState::Crouched) => {
                 if self.can_stand_up(
@@ -343,7 +367,7 @@ impl<'a> Player<'a> {
         // make a note of when a step was taken. The frequency of
         // steps is a function of our speed.
         if self.is_grounded || self.wallrunning_state != WallRunning::None {
-            let current_speed = self.velocity(&mut physics.rigid_body_set).magnitude();
+            let current_speed = self.body_linear_velocity.magnitude();
             if current_speed > 0.0 {
                 let max_possible_move_speed = self.config.max_standing_move_speed();
                 let speed_ratio = max_possible_move_speed / current_speed;
@@ -516,18 +540,11 @@ impl<'a> Player<'a> {
         }
     }
 
-    fn determine_non_vertical_motion(&mut self, rigid_body_set: &mut RigidBodySet) {
+    fn determine_linear_velocity(&mut self, rigid_body_set: &mut RigidBodySet) {
         let body_handle = self.body_handle();
-        if let Some(body) = rigid_body_set.get_mut(body_handle) {
-            let linear_velocity = body.linvel();
-            if vector![linear_velocity.x, 0.0, linear_velocity.z].magnitude()
-                > self.config.nonstationary_speed_threshold()
-            {
-                self.is_moving_non_vertically = true;
-                return;
-            }
+        if let Some(body) = rigid_body_set.get(body_handle) {
+            self.body_linear_velocity = *body.linvel();
         }
-        self.is_moving_non_vertically = false;
     }
 
     /// Set the body's vertical velocity to 0.
@@ -635,6 +652,13 @@ impl<'a> Player<'a> {
         self.wallrunning_state.transition_to(WallRunning::None);
     }
 
+    fn determine_sliding_state(&mut self) {
+        self.is_sliding = self.is_grounded
+            && self.crouch_state.current_state() == &CrouchState::Crouched
+            && self.body_linear_velocity.xz().magnitude()
+                >= self.config.slide_factor() * self.config.max_standing_move_speed();
+    }
+
     /// Tilt the head of the player about the Z axis based on the current wall running state.
     /// If the player is on a wall on the right, tilt the head left. If the wall is on the left, tilt
     /// the head right. If not wall running, don't tilt the head.
@@ -686,7 +710,7 @@ impl<'a> Player<'a> {
                 &vector![0.0, 1.0, 0.0],
                 standing_shape,
                 0.0,
-                query_filter_excluding_player(),
+                self.query_filter_excluding_player,
             )
             .is_some()
         {
@@ -710,13 +734,14 @@ impl<'a> Player<'a> {
                 .transition_to(match self.crouch_state.current_state() {
                     CrouchState::Upright => CrouchState::Crouched,
                     CrouchState::Crouched => {
-                        // // Prevent any intersections between the larger collider and the ground
-                        // let mut new_pos = self.body_isometry();
-                        // new_pos.translation.y += (self.config.capsule_standing_half_height()
-                        //     + self.config.capsule_standing_radius())
-                        //     - (self.config.capsule_crouched_half_height()
-                        //         + self.config.capsule_crouched_radius());
-                        // body.set_position(new_pos, true);
+                        // Prevent any intersections between the larger collider and the ground
+                        let mut new_pos = self.body_isometry();
+                        let distance_between_standing_and_crouched_heights =
+                            self.config.capsule_standing_total_height()
+                                - self.config.capsule_crouched_total_height();
+                        new_pos.translation.y +=
+                            distance_between_standing_and_crouched_heights / 2.0;
+                        body.set_position(new_pos, true);
                         // // Or something like this
                         // body.add_force(vector![0.0, 125.0, 0.0], true);
                         CrouchState::Upright
@@ -751,12 +776,5 @@ impl<'a> Player<'a> {
         if let Some(body) = rigid_body_set.get_mut(self.body_handle()) {
             body.set_gravity_scale(1.0, true);
         }
-    }
-
-    fn velocity(&self, rigid_body_set: &mut RigidBodySet) -> Vector3<f32> {
-        if let Some(body) = rigid_body_set.get(self.body_handle()) {
-            return *body.linvel();
-        }
-        vector![0.0, 0.0, 0.0]
     }
 }
