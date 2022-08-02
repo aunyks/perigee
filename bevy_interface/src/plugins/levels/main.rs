@@ -300,7 +300,7 @@ fn move_body(mut game: ResMut<Sim<'static>>, keyboard_input: Res<Input<KeyCode>>
 }
 
 fn crouch_body(mut game: ResMut<Sim<'static>>, keyboard_input: Res<Input<KeyCode>>) {
-    if keyboard_input.pressed(KeyCode::M) {
+    if keyboard_input.pressed(KeyCode::C) {
         game.input.set_crouch(true);
     } else {
         game.input.set_crouch(false);

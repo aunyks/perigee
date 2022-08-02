@@ -292,23 +292,11 @@ impl<'a> Player<'a> {
             CrouchState::Upright => self.config.min_jump_standing_cooldown_duration(),
             CrouchState::Crouched => self.config.min_jump_crouched_cooldown_duration(),
         };
-        if input.jump() {
-            let jump_has_cooled_down = self.jump_cooldown_timer.elapsed()
-                > Duration::from_secs_f32(max_jump_cooldown_timer_duration);
-            let is_grounded_or_wallrunning =
-                self.wallrunning_state != WallRunning::None || self.is_grounded;
-            let can_coyote_jump = self.coyote_timer.elapsed()
-                < Duration::from_secs_f32(self.config.max_jump_coyote_duration());
-
-            if jump_has_cooled_down && (is_grounded_or_wallrunning || can_coyote_jump) {
-                self.jump(&mut physics.rigid_body_set, game_events);
-            }
-        }
         if !self.is_grounded && self.wallrunning_state == WallRunning::None {
             self.coyote_timer.tick(delta_seconds);
         }
 
-        if self.is_grounded {
+        if self.is_grounded && !input.jump() {
             let max_move_speed = match self.crouch_state.current_state() {
                 CrouchState::Upright => self.config.max_standing_move_speed(),
                 CrouchState::Crouched => self.config.max_crouched_move_speed(),
@@ -325,6 +313,19 @@ impl<'a> Player<'a> {
                 max_move_speed,
                 &mut physics.rigid_body_set,
             );
+        }
+
+        if input.jump() {
+            let jump_has_cooled_down = self.jump_cooldown_timer.elapsed()
+                > Duration::from_secs_f32(max_jump_cooldown_timer_duration);
+            let is_grounded_or_wallrunning =
+                self.wallrunning_state != WallRunning::None || self.is_grounded;
+            let can_coyote_jump = self.coyote_timer.elapsed()
+                < Duration::from_secs_f32(self.config.max_jump_coyote_duration());
+
+            if jump_has_cooled_down && (is_grounded_or_wallrunning || can_coyote_jump) {
+                self.jump(&mut physics.rigid_body_set, game_events);
+            }
         }
 
         match (input.crouch(), self.crouch_state.current_state()) {
@@ -437,7 +438,7 @@ impl<'a> Player<'a> {
             let new_body_rotation = body
                 .position()
                 .rotation
-                .append_axisangle_linearized(&vector![0.0, y_axis_rotation, 0.0]);
+                .append_axisangle_linearized(&Vector3::new(0.0, y_axis_rotation, 0.0));
             body.set_position(
                 Isometry::from_parts(body.position().translation, new_body_rotation),
                 false,
@@ -467,7 +468,7 @@ impl<'a> Player<'a> {
         rigid_body_set: &mut RigidBodySet,
     ) {
         if !self.is_sliding {
-            let movement_vector = vector![left_right_magnitude, 0.0, forward_back_magnitude];
+            let movement_vector = Vector3::new(left_right_magnitude, 0.0, forward_back_magnitude);
             let trying_to_move = movement_vector.magnitude() != 0.0;
             let max_velocity: Vector<f32> = if trying_to_move {
                 // If we don't have this check, we'd be dividing 0 by 0 and
@@ -477,7 +478,11 @@ impl<'a> Player<'a> {
                 movement_vector * max_speed
             };
 
-            let current_velocity = self.body_linear_velocity;
+            let current_non_vertical_velocity = Vector3::new(
+                self.body_linear_velocity.x,
+                0.0,
+                self.body_linear_velocity.z,
+            );
             let body_handle = self.body_handle();
             if let Some(body) = rigid_body_set.get_mut(body_handle) {
                 // The max velocity transformed by the isometry (position & orientation)
@@ -490,11 +495,12 @@ impl<'a> Player<'a> {
 
                 let goal_velocity = move_towards(
                     &vertical_transformed_max_velocity,
-                    &current_velocity,
+                    &current_non_vertical_velocity,
                     max_move_acceleration * delta_seconds,
                 );
 
-                let acceleration = ((goal_velocity - current_velocity) / delta_seconds)
+                let acceleration = ((goal_velocity - current_non_vertical_velocity)
+                    / delta_seconds)
                     .cap_magnitude(max_move_acceleration);
 
                 body.reset_forces(true);
@@ -522,7 +528,7 @@ impl<'a> Player<'a> {
         let body_handle = self.body_handle();
         let body_isometry = self.body_isometry();
         // We always wanna jump up and forward
-        let untransformed_jump_direction_vector = vector![0.0, 2.0, -2.0];
+        let untransformed_jump_direction_vector = Vector3::new(0.0, 1.0, -0.5);
         // And also away from the wall
         let jump_vector = match self.wallrunning_state.current_state() {
             WallRunning::OnRight(untransformed_wall_normal) => {
@@ -533,12 +539,12 @@ impl<'a> Player<'a> {
                 (untransformed_wall_normal + untransformed_jump_direction_vector)
                     * self.config.jump_wallrunning_scale()
             }
-            WallRunning::None => vector![0.0, 1.0, 0.0],
+            WallRunning::None => Vector3::new(0.0, 1.0, 0.0),
         } * jump_acceleration;
         if let Some(body) = rigid_body_set.get_mut(body_handle) {
             let transformed_jump_vector = body_isometry.transform_vector(&jump_vector);
-            let jump_impulse = body.mass() * transformed_jump_vector;
-            body.apply_impulse(jump_impulse, true);
+            body.reset_forces(true);
+            body.apply_impulse(transformed_jump_vector * body.mass(), true);
         }
     }
 
@@ -571,7 +577,7 @@ impl<'a> Player<'a> {
         let body_handle = self.body_handle();
         let body_isometry = self.body_isometry();
         if rigid_body_set.get_mut(body_handle).is_some() {
-            let grounded_ray = Ray::new(point![0.0, 0.0, 0.0], vector![0.0, -1.0, 0.0])
+            let grounded_ray = Ray::new(point![0.0, 0.0, 0.0], Vector3::new(0.0, -1.0, 0.0))
                 .transform_by(&body_isometry);
             if let Some((_, ray_intersection)) = query_pipeline.cast_ray_and_get_normal(
                 &rigid_body_set,
@@ -608,7 +614,7 @@ impl<'a> Player<'a> {
             // Can only wallrun if moving forward enough
             let transformed_forward_vector = self
                 .body_isometry()
-                .transform_vector(&vector![0.0, 0.0, -1.0]);
+                .transform_vector(&Vector3::new(0.0, 0.0, -1.0));
             if body_linear_velocity.dot(&transformed_forward_vector)
                 <= self.config.wallrunning_dot_value()
             {
@@ -616,7 +622,7 @@ impl<'a> Player<'a> {
                 return;
             }
 
-            let right_wall_ray = Ray::new(point![0.0, 0.0, 0.0], vector![1.0, 0.0, 0.0])
+            let right_wall_ray = Ray::new(point![0.0, 0.0, 0.0], Vector3::new(1.0, 0.0, 0.0))
                 .transform_by(&body_isometry);
 
             if let Some((_handle, ray_intersection)) = query_pipeline.cast_ray_and_get_normal(
@@ -635,7 +641,7 @@ impl<'a> Player<'a> {
                 return;
             }
 
-            let left_wall_ray = Ray::new(point![0.0, 0.0, 0.0], vector![-1.0, 0.0, 0.0])
+            let left_wall_ray = Ray::new(point![0.0, 0.0, 0.0], Vector3::new(-1.0, 0.0, 0.0))
                 .transform_by(&body_isometry);
             if let Some((_handle, ray_intersection)) = query_pipeline.cast_ray_and_get_normal(
                 &rigid_body_set,
@@ -664,7 +670,7 @@ impl<'a> Player<'a> {
             && self.crouch_state.current_state() == &CrouchState::Crouched
             && non_vertical_velocity.dot(
                 &body_isometry
-                    .transform_vector(&vector![0.0, 0.0, -1.0])
+                    .transform_vector(&Vector3::new(0.0, 0.0, -1.0))
                     .xz(),
             ) >= self.config.sliding_forward_factor()
             && non_vertical_velocity.magnitude()
@@ -719,7 +725,7 @@ impl<'a> Player<'a> {
                 &rigid_body_set,
                 &collider_set,
                 &standing_isometry,
-                &vector![0.0, 1.0, 0.0],
+                &Vector3::new(0.0, 1.0, 0.0),
                 standing_shape,
                 0.0,
                 self.query_filter_excluding_player,
@@ -762,7 +768,7 @@ impl<'a> Player<'a> {
                             distance_between_standing_and_crouched_heights / 2.0;
                         body.set_position(new_pos, true);
                         // // Or something like this
-                        // body.add_force(vector![0.0, 125.0, 0.0], true);
+                        // body.add_force(Vector3::new(0.0,  125.0,  0.0), true);
                         CrouchState::Upright
                     }
                 });
@@ -774,20 +780,16 @@ impl<'a> Player<'a> {
     }
 
     fn start_wallrunning(&mut self, rigid_body_set: &mut RigidBodySet) {
+        let current_velocity = self.body_linear_velocity;
         if let Some(body) = rigid_body_set.get_mut(self.body_handle()) {
             body.reset_forces(true);
             body.set_gravity_scale(self.config.start_wallrunning_gravity_scale(), true);
-            let current_linvel = body.linvel();
-            let new_linvel = vector![current_linvel.x, 0.0, current_linvel.z];
-            body.set_linvel(new_linvel, true);
-            body.apply_impulse(
-                vector![
-                    0.0,
-                    self.config.start_wallrunning_up_acceleration() * body.mass(),
-                    0.0
-                ] * body.mass(),
-                true,
+            let new_linvel = Vector3::new(
+                current_velocity.x,
+                self.config.start_wallrunning_up_acceleration(),
+                current_velocity.z,
             );
+            body.set_linvel(new_linvel, true);
         }
     }
 
@@ -799,7 +801,6 @@ impl<'a> Player<'a> {
 
     fn start_sliding(&mut self, rigid_body_set: &mut RigidBodySet) {
         let body_isometry = self.body_isometry();
-        let current_velocity = self.body_linear_velocity;
         if let Some(body) = rigid_body_set.get_mut(self.body_handle()) {
             let sliding_deceleration: Vector3<f32> = self.config.sliding_deceleration().into();
             let transformed_sliding_deceleration =
@@ -809,10 +810,7 @@ impl<'a> Player<'a> {
             let transformed_sliding_velocity_increase =
                 body_isometry.transform_vector(&sliding_velocity_increase);
             body.reset_forces(true);
-            body.set_linvel(
-                current_velocity + transformed_sliding_velocity_increase,
-                true,
-            );
+            body.apply_impulse(transformed_sliding_velocity_increase * body.mass(), true);
             body.add_force(transformed_sliding_deceleration * body.mass(), true);
         }
     }
