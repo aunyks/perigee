@@ -1,0 +1,25 @@
+[package]
+name = "single_player"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = "s"
+strip = "debuginfo"
+lto = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+ffi = ["perigee_core/ffi"]
+level_0 = []
+
+[dependencies]
+perigee_core = { package = "core", path = "../core" }
+
+# https://github.com/Ralith/hecs
+hecs = { version = "0.7.6" }
+
+# https://github.com/serde-rs/serde
+serde = { version = "1.0.97", features = ["derive"] }

@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "rust-lang.rust-analyzer",
+    "gruntfuggly.todo-tree",
+    "skellock.just",
+    "bungcip.better-toml",
+    "cesium.gltf-vscode"
+  ]
+}

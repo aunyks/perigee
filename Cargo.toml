@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    # Useful macros that are effectively part of the core crate.
+    "core_macros",
+    # Core components (player, settings, config, physics, etc).
+    # Also re-exports the core_macros crate.
+    "core",
+    # Simulation structures that define single player levels
+    "single_player",
+]
+resolver = "2"

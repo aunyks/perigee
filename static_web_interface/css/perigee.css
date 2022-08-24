@@ -1,0 +1,276 @@
+/*
+  Use this file to override pico defaults.
+*/
+
+:root {
+  --modal-overlay-background-color: rgba(0, 0, 0, 0.65);
+}
+
+:root:not([data-theme='dark']) {
+  --primary: #5d44f8;
+}
+
+html {
+  cursor: auto;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+@media only screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --primary: #fab700;
+  }
+}
+
+/*
+The opposite of aria-hidden="true", this makes an element 
+aria-accessible but visually hidden. Ex:
+<element visually-hidden="true">
+*/
+[visually-hidden='true'] {
+  display: block;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  clip-path: inset(1px);
+  white-space: nowrap;
+  position: absolute;
+}
+
+@-webkit-keyframes fadeIn {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--modal-overlay-background-color);
+  }
+}
+
+/* Modal */
+@keyframes fadeIn {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--modal-overlay-background-color);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    -webkit-transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    -webkit-transform: translateY(00px);
+    opacity: 1;
+  }
+}
+
+:root {
+  --scrollbar-width: 0px;
+}
+
+dialog {
+  display: flex;
+  z-index: 999;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  align-items: center;
+  justify-content: center;
+  width: inherit;
+  min-width: 100%;
+  height: inherit;
+  min-height: 100%;
+  padding: var(--spacing);
+  border: none;
+  background-color: var(--modal-overlay-background-color);
+  -webkit-backdrop-filter: blur(3px) !important;
+  backdrop-filter: blur(3px) !important;
+}
+
+dialog article {
+  min-width: 20rem;
+  max-height: 60vh;
+  overflow-y: scroll;
+}
+
+@media (min-width: 576px) {
+  dialog article {
+    max-width: 510px;
+  }
+}
+
+@media (min-width: 768px) {
+  dialog article {
+    max-width: 700px;
+  }
+}
+dialog article > header,
+dialog article > footer {
+  padding: calc(var(--block-spacing-vertical) * 0.5)
+    var(--block-spacing-horizontal);
+}
+dialog article > header .close {
+  margin: 0;
+  margin-left: var(--spacing);
+  float: right;
+}
+dialog article > footer {
+  text-align: right;
+}
+dialog article > footer [role='button'] {
+  margin-bottom: 0;
+}
+dialog article > footer [role='button']:not(:first-of-type) {
+  margin-left: calc(var(--spacing) * 0.5);
+}
+dialog article p:last-of-type {
+  margin: 0;
+}
+dialog article .close {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  margin-top: calc(var(--block-spacing-vertical) * -0.5);
+  margin-bottom: var(--typography-spacing-vertical);
+  margin-left: auto;
+  background-image: var(--icon-close);
+  background-position: center;
+  background-size: auto 1rem;
+  background-repeat: no-repeat;
+  opacity: 0.5;
+  transition: opacity var(--transition);
+}
+dialog article .close:hover,
+dialog article .close:active,
+dialog article .close:focus {
+  opacity: 1;
+}
+dialog:not([open]),
+dialog[open='false'] {
+  display: none;
+}
+
+dialog article > h1, h2, h3 {
+  margin-bottom: 0.5rem;
+}
+
+.modal-is-open {
+  padding-right: var(--scrollbar-width, 0px);
+  overflow: hidden;
+  pointer-events: none;
+}
+.modal-is-open dialog {
+  pointer-events: auto;
+}
+
+.modal-is-opening dialog,
+.modal-is-opening dialog > article,
+.modal-is-closing dialog,
+.modal-is-closing dialog > article {
+  -webkit-animation-duration: 0.2s;
+  animation-duration: 0.2s;
+  -webkit-animation-timing-function: ease-in-out;
+  animation-timing-function: ease-in-out;
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+}
+.modal-is-opening dialog,
+.modal-is-closing dialog {
+  -webkit-animation-duration: 0.2s;
+  animation-duration: 0.2s;
+  -webkit-animation-name: fadeIn;
+  animation-name: fadeIn;
+}
+
+dialog > article {
+  animation-name: slideUp;
+}
+
+.modal-is-closing dialog,
+.modal-is-closing dialog > article {
+  animation-direction: reverse;
+}
+
+a[role='button'],
+button,
+input[type='button'],
+input[type='reset'],
+input[type='submit'] {
+  border: none;
+}
+
+.hidden {
+  display: none;
+}
+
+#stacking-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+#loading-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#scene-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.hud.input {
+  position: absolute;
+  display: none;
+  user-select: none;
+}
+
+@media screen and (max-width: 1024px) {
+  .hud.input {
+    display: block;
+  }
+}
+
+#scene-container {
+  user-select: none;
+}
+
+nav.navbar > ul > li > ul {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  transition: all 0.5s ease;
+  margin-top: 1rem;
+  display: none;
+}
+nav.navbar > ul > li:hover > ul,
+nav.navbar > ul > li:focus-within > ul,
+nav.navbar > ul > li > ul:hover {
+  visibility: visible;
+  opacity: 1;
+  display: block;
+}
+nav.navbar > ul > li > ul > li {
+  clear: both;
+  width: 100%;
+}

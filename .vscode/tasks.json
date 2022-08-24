@@ -1,0 +1,59 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"command": "just serve-web",
+			"group": "none",
+			"label": "Serve the Web Build"
+		},
+		{
+			"type": "shell",
+			"command": "just test-all",
+			"group": "test",
+			"label": "Run All Tests"
+		},
+		{
+			"type": "shell",
+			"command": "just test-wasm",
+			"group": "test",
+			"label": "Test JS Wrapper for WASM"
+		},
+		{
+			"type": "shell",
+			"command": "just test single_player",
+			"group": "test",
+			"label": "Test 'single_player' Crate"
+		},
+		{
+			"type": "shell",
+			"command": "just test core",
+			"group": "test",
+			"label": "Test 'core' Crate"
+		},
+		{
+			"type": "shell",
+			"command": "just build-web",
+			"group": "build",
+			"label": "Prepare Assets Needed for Web"
+		},
+		{
+			"type": "shell",
+			"command": "just build-all",
+			"group": "build",
+			"label": "Build All Crates"
+		},
+		{
+			"type": "shell",
+			"command": "just build single_player",
+			"group": "build",
+			"label": "Build 'single_player' Crate"
+		},
+		{
+			"type": "shell",
+			"command": "just build core",
+			"group": "build",
+			"label": "Build 'core' Crate"
+		}
+	]
+}
