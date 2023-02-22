@@ -994,12 +994,11 @@ impl Player {
         let (cap_halfheight, cap_radius) = self.capsule_values();
 
         if rigid_body_set.get_mut(body_handle).is_some() {
-            let shape_vel = DOWN_VECTOR;
             if let Some((_, shape_hit)) = query_pipeline.cast_shape(
                 rigid_body_set,
                 collider_set,
                 body_isometry,
-                &shape_vel,
+                &DOWN_VECTOR,
                 &Capsule::new_y(cap_halfheight, cap_radius),
                 self.config.ground_ray_length(),
                 true,
