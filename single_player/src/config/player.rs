@@ -5,208 +5,153 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub struct PlayerConfig {
     /// The mass of the player's body (via its collider).
-    #[serde(default)]
     mass: f32,
     /// How high the player can look (max X axis rotation of the head or viewpoint).
-    #[serde(default)]
     max_look_up_angle: f32,
     /// How low the player can look (min X axis rotation of the head or viewpoint).
-    #[serde(default)]
     min_look_up_angle: f32,
     /// The per-frame lerp factor (alpha) used when entering a wallrunning head tilt.
-    #[serde(default)]
     enter_head_tilt_factor: f32,
     /// The per-frame lerp factor (alpha) used when exiting a wallrunning head tilt.
-    #[serde(default)]
     exit_head_tilt_factor: f32,
     /// How fast the player must be moving to be considered
     /// moving.
-    #[serde(default)]
     nonstationary_speed_threshold: f32,
     /// The max speed to which player's own forces can move its rigid body when standing in the continuous movement mode.
-    #[serde(default)]
     max_standing_move_speed_continuous: f32,
     /// The max speed to which player's own forces can move its rigid body when crouched in the continuous movement mode.
-    #[serde(default)]
     max_crouched_move_speed_continuous: f32,
     /// The max acceleration force the player can apply to its rigid body when standing in the continuous movement mode.
-    #[serde(default)]
     max_standing_move_acceleration_continuous: f32,
     /// The max acceleration force the player can apply to its rigid body when crouched in the continuous movement mode.
-    #[serde(default)]
     max_crouched_move_acceleration_continuous: f32,
     /// The walk speed of the player when standing in the discrete movement mode.
-    #[serde(default)]
     standing_walk_speed_discrete: f32,
     /// The run speed of the player when standing in the discrete movement mode.
-    #[serde(default)]
     standing_run_speed_discrete: f32,
     /// The sprint speed of the player when standing in the discrete movement mode.
-    #[serde(default)]
     standing_sprint_speed_discrete: f32,
     /// The creep speed of the player when crouched in the discrete movement mode.
-    #[serde(default)]
     crouched_creep_speed_discrete: f32,
     /// The walk acceleration force the player applies to its rigid body when standing in the discrete movement mode.
-    #[serde(default)]
     standing_walk_acceleration_discrete: f32,
     /// The run acceleration force the player applies to its rigid body when standing in the discrete movement mode.
-    #[serde(default)]
     standing_run_acceleration_discrete: f32,
     /// The sprint acceleration force the player applies to its rigid body when standing in the discrete movement mode.
-    #[serde(default)]
     standing_sprint_acceleration_discrete: f32,
     /// The creep acceleration force the player applies to its rigid body when crouched in the discrete movement mode.
-    #[serde(default)]
     crouched_creep_acceleration_discrete: f32,
     /// The threshold (between 0 and 1) above which a player's movement vector's magnitude must be greater than to trigger a sprint.
-    #[serde(default)]
     standing_sprint_input_threshold: f32,
     /// The max angle between the forward vector and the movement vector under which the player can sprint in discrete movement mode.
-    #[serde(default)]
     max_sprint_forward_angle_threshold_discrete: f32,
-    #[serde(default)]
+
     discrete_movement_factor: f32,
     /// The threshold (between 0 and 1) above which a player's movement vector's magnitude must be greater than to trigger a run.
-    #[serde(default)]
     standing_run_input_threshold: f32,
     /// The total height of the player's capsule when standing.
-    #[serde(default)]
     capsule_standing_height: f32,
     /// The radius of the cylinder part of the player and each half-sphere of the capsule when standing.
-    #[serde(default)]
     capsule_standing_radius: f32,
     /// The total height of the player's capsule when crouched.
-    #[serde(default)]
     capsule_crouched_height: f32,
     /// The radius of the cylinder part of the player and each half-sphere of the capsule when standing.
-    #[serde(default)]
     capsule_crouched_radius: f32,
     /// The translational offset of the head (which is often tracked by the camera) from the center of the
     /// capsule when standing.
-    #[serde(default)]
     standing_head_translation_offset: [f32; 3],
     /// The translational offset of the head (which is often tracked by the camera) from the center of the
     /// capsule when crouched.
-    #[serde(default)]
     crouched_head_translation_offset: [f32; 3],
     /// How quickly the player's head lerps between its standing
     /// translational offset and crouched translational offset.
-    #[serde(default)]
     head_crouch_lerp_factor: f32,
     /// How many seconds after no longer being grounded or wallrunning
     /// the player can still jump.
-    #[serde(default)]
     max_jump_coyote_duration: f32,
     /// How much force is used to make the player jump when standing.
-    #[serde(default)]
     jump_standing_acceleration: f32,
     /// How much force is used to make the player jump when crouched.
-    #[serde(default)]
     jump_crouched_acceleration: f32,
     /// How many seconds must pass before another jump is possible
     /// while the player is standing up.
-    #[serde(default)]
     min_jump_standing_cooldown_duration: f32,
     /// How many seconds must pass before another jump is possible.
     /// while the player is crouching.
-    #[serde(default)]
     min_jump_crouched_cooldown_duration: f32,
     /// The scale factor of jump force (up + forward) when wallrunning.
-    #[serde(default)]
     jump_wallrunning_scale: f32,
     /// How close to straight down the body must be moving when wallrunning for the
     /// vertical velocity to be canceled before jumping off the wall.
     ///
     /// This is the minimum angle between the velocity and the down vector
     /// to be considered wallrunning downward.
-    #[serde(default)]
     jump_wallrunning_down_velocity_angle_threshold: f32,
     /// The scale factor of jump force in the direction of the wall normal when wallrunning.
-    #[serde(default)]
     jump_wallrunning_normal_scale: f32,
     /// How far from the player the rays used to determine whether it's
     /// wallrunning go.
-    #[serde(default)]
     wallrunning_ray_length: f32,
     /// How far below the player the ray used to determine whether it's
     /// grounded goes.
-    #[serde(default)]
     ground_ray_length: f32,
     /// How far straight ahead the player must be moving next to a wall
     /// to be considered wallrunning. Values closer to 1 mean more straightforwardness.
-    #[serde(default)]
     max_wallrunning_forward_angle: f32,
     /// The vertical acceleration applied to the player's
     /// body once wallrunning has started.
-    #[serde(default)]
     start_wallrunning_up_impulse: f32,
     /// The gravity scale of the player's body once wallrunning
     /// has started.
-    #[serde(default)]
     start_wallrunning_gravity_scale: f32,
     /// How many seconds should pass before another footstep is taken
     /// when moving at the max speed while grounded.
-    #[serde(default)]
     grounded_seconds_per_footstep: f32,
     /// How many seconds should pass before another footstep is taken
     /// when moving at the max speed while wallrunning.
-    #[serde(default)]
     wallrunning_seconds_per_footstep: f32,
     /// How much of the max standing speed must the player
     /// be moving in order to slide when the crouch input is hit.
-    #[serde(default)]
     sliding_speed_factor: f32,
     /// How straightforward the player must be moving
     /// before entering a slide.
-    #[serde(default)]
     sliding_max_forward_angle: f32,
     /// The acceleration vector applied to the rigid body
     /// when the player starts sliding.
-    #[serde(default)]
     sliding_deceleration: [f32; 3],
     /// The increase in velocity applied to the rigid
     /// body when the player starts sliding.
-    #[serde(default)]
     sliding_velocity_increase: [f32; 3],
     /// The minimum dot factor of the player's velocity with
     /// a vector facing (0, -1, -1) needed for the player to be
     /// considered traveling downhill.
-    #[serde(default)]
     endless_slide_downhill_max_down_angle: f32,
     /// The maximum dot factor of the player's ground normal
     /// with the up vector (0, 1, 0) to be considered traveling downhill.
-    #[serde(default)]
     endless_slide_ground_normal_max_up_angle: f32,
     /// The acceleration applied to endless / downhill slides.
-    #[serde(default)]
     endless_sliding_acceleration: [f32; 3],
     /// The max capacity of the event channel used by the player structure.
-    #[serde(default)]
     event_queue_capacity: usize,
     /// The length of the default boom arm.
-    #[serde(default)]
     default_boom_arm_length: f32,
     /// The pitch angle (about X axis) of the default boom arm in degrees.
-    #[serde(default)]
     default_boom_arm_pitch_angle: f32,
     /// The yaw angle (about Y axis) of the default boom arm in degrees.
-    #[serde(default)]
     default_boom_arm_yaw_angle: f32,
     /// How quickly the third person boom moves between the default and aim booms.
-    #[serde(default)]
     boom_lerp_factor: f32,
     /// The length of the aiming boom arm.
-    #[serde(default)]
     aim_boom_arm_length: f32,
     /// The pitch angle (about X axis) of the aiming boom arm in degrees.
-    #[serde(default)]
     aim_boom_arm_pitch_angle: f32,
     /// The yaw angle (about Y axis) of the aiming boom arm in degrees.
-    #[serde(default)]
     aim_boom_arm_yaw_angle: f32,
-    #[serde(default)]
+    /// The lerp factor of player body isometry to the boom isometry
+    /// while in third person combat mode.
     tpcombat_boom_rotation_lerp_factor: f32,
+    /// The lerp factor for the player body to rotate in the player's movement direction.
+    rotate_body_to_movement_dir_lerp_factor: f32,
 }
 
 impl Default for PlayerConfig {
@@ -283,6 +228,7 @@ impl Default for PlayerConfig {
             aim_boom_arm_pitch_angle: 0.0,
             aim_boom_arm_yaw_angle: 20.0,
             tpcombat_boom_rotation_lerp_factor: 0.9,
+            rotate_body_to_movement_dir_lerp_factor: 0.999,
         }
     }
 }
@@ -621,5 +567,10 @@ impl PlayerConfig {
     /// while in third person combat mode.
     pub fn tpcombat_boom_rotation_lerp_factor(&self) -> f32 {
         self.tpcombat_boom_rotation_lerp_factor
+    }
+
+    /// The lerp factor for the player body to rotate in the player's movement direction.
+    pub fn rotate_body_to_movement_dir_lerp_factor(&self) -> f32 {
+        self.rotate_body_to_movement_dir_lerp_factor
     }
 }

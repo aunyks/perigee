@@ -577,7 +577,7 @@ impl Player {
         delta_seconds: f32,
     ) {
         let movement_vector = Vector3::new(left_right_magnitude, 0.0, forward_back_magnitude);
-        let trying_to_move = movement_vector.magnitude() != 0.0;
+        let trying_to_move = movement_vector.magnitude() > 0.0;
 
         let boom_isometry = Isometry::from_parts(self.boom.translation, self.boom.z_rotation);
         let body_handle = self.body_handle();
@@ -588,7 +588,10 @@ impl Player {
                 let move_direction = boom_isometry.transform_vector(&movement_vector);
                 let new_body_rotation = match body_iso.rotation.try_slerp(
                     &UnitQuaternion::face_towards(&-move_direction, &Vector3::y_axis()),
-                    framerate_independent_interp_t(0.9, delta_seconds),
+                    framerate_independent_interp_t(
+                        self.config.rotate_body_to_movement_dir_lerp_factor(),
+                        delta_seconds,
+                    ),
                     0.01,
                 ) {
                     Some(quat) => quat,
