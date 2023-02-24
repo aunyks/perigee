@@ -10,7 +10,7 @@ extern "C" {
     fn loop_2d_audio_hook(audio_name_ptr: *const c_char);
     fn loop_animation_hook(scene_obj_name_ptr: *const c_char, anim_name_ptr: *const c_char);
     fn stop_animation_hook(scene_obj_name_ptr: *const c_char, anim_name_ptr: *const c_char);
-    fn assistive_device_announce_hook(announcement_msg_ptr: *const c_char);
+    fn assistive_device_announce_hook(announcement_msg_id: i32);
 }
 
 #[cfg(feature = "ffi")]
@@ -94,13 +94,13 @@ pub fn stop_animation(scene_object_name: &str, anim_name: &str) {
 }
 
 #[cfg(feature = "ffi")]
-pub fn assistive_device_announce(announcement_msg: &str) {
-    let announcement_cstring = CString::new(announcement_msg)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
-    unsafe { assistive_device_announce_hook(announcement_cstring.as_ptr()) }
+pub fn assistive_device_announce(announcement_msg_id: i32) {
+    unsafe {
+        assistive_device_announce_hook(announcement_msg_id);
+    }
 }
 
 #[cfg(not(feature = "ffi"))]
-pub fn assistive_device_announce(announcement_msg: &str) {
-    debug!("Assistive Device Announcement: {}", announcement_msg);
+pub fn assistive_device_announce(announcement_msg_id: i32) {
+    debug!("Assistive Device Announcement ID: {}", announcement_msg_id);
 }
