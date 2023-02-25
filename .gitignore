@@ -1,9 +1,0 @@
-target/
-node_modules/
-*.bu
-.DS_Store
-*.blend1
-**/PerigeeEngineAddon.zip
-**/Cargo.lock
-**/Cargo.lock
-**/Cargo.lock

@@ -2,8 +2,9 @@
   "recommendations": [
     "rust-lang.rust-analyzer",
     "gruntfuggly.todo-tree",
-    "skellock.just",
     "bungcip.better-toml",
-    "cesium.gltf-vscode"
+    "cesium.gltf-vscode",
+    "ms-python.python",
+    "esbenp.prettier-vscode"
   ]
 }
