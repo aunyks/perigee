@@ -31,6 +31,15 @@ class ObjectSimulationSettings(bpy.types.PropertyGroup):
             },
             "isPointOfInterest": self.is_point_of_interest,
         }
+    
+    def from_dict(self, new_dict):
+        self.is_graphics_object = new_dict["graphics"]["enabled"]
+        self.is_physics_object = new_dict["physics"]["enabled"]
+        self.body_type = new_dict["physics"]["bodyType"]
+        self.mass = new_dict["physics"]["mass"]
+        self.optimized_shape = new_dict["physics"]["optimizedShape"]
+        self.is_anonymous = new_dict["physics"]["isAnonymous"]
+        self.is_point_of_interest = new_dict["isPointOfInterest"]
         
 class VIEW3D_PT_object_sim_settings(bpy.types.Panel):
     bl_space_type = "VIEW_3D"

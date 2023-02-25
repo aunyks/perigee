@@ -8,10 +8,10 @@ bl_info = {
     "blender": (2, 80, 0),
     "location": "3D Viewport Side Panel & File > Export > glTF 2.0",
     "description": "An addon for specifying simulation scenes for the Perigee realtime engine.",
-    "tracker_url": "https://github.com/aunyks/perigee-blender-addon/issues/",  # Replace with your issue tracker
-    "isDraft": True,
+    "tracker_url": "https://github.com/aunyks/perigee/issues/",
+    "isDraft": False,
     "developer": "Gerald Nash",
-    "url": "https:/github.com/aunyks/perigee-blender-addon",
+    "url": "https:/github.com/aunyks/perigee",
 }
 
 def register():
@@ -27,21 +27,23 @@ def unregister():
 
 def register_panel():
     try:
-        bpy.utils.register_class(GLTF_PT_UserExtensionPanel)
+        bpy.utils.register_class(GLTF_PT_UserExtensionExportPanel)
+        bpy.utils.register_class(GLTF_PT_UserExtensionImportPanel)
     except Exception:
         pass
     return unregister_panel
 
 def unregister_panel():
     try:
-        bpy.utils.unregister_class(GLTF_PT_UserExtensionPanel)
+        bpy.utils.unregister_class(GLTF_PT_UserExtensionExportPanel)
+        bpy.utils.unregister_class(GLTF_PT_UserExtensionImportPanel)
     except Exception:
         pass
 
 class PerigeeGltfExportProperties(bpy.types.PropertyGroup):
     enabled: bpy.props.BoolProperty(name = "Include Perigee Engine Extras", description = "Activate the Perigee Engine glTF extras", default = True)
 
-class GLTF_PT_UserExtensionPanel(bpy.types.Panel):
+class GLTF_PT_UserExtensionExportPanel(bpy.types.Panel):
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
     bl_label = "Enabled"
@@ -105,3 +107,11 @@ class glTF2ExportUserExtension:
             gltf2_scene.extras = {
                 "perigeeBlenderAddonVersion": [0, 1, 0]
             }
+
+class glTF2ImportUserExtension:
+    def __init__(self):
+        pass
+
+    def gather_import_node_after_hook(self, vnode, gltf2_node, blender_object, gltf):
+        if gltf2_node.extras is not None:
+            blender_object.sim_settings.from_dict(gltf2_node.extras["simSettings"])
