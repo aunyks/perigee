@@ -1,5 +1,5 @@
 use crate::config::PlayerConfig;
-use perigee_core::{
+use perigee::{
     config::PhysicsConfig,
     toml,
     traits::{TryFromToml, TryToToml},

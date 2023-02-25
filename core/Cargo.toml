@@ -2,7 +2,7 @@
 name = "core"
 version = "0.1.0"
 edition = "2021"
-authors = ["Gerald \"aunyks\" Nash"]
+authors = ["Gerald Nash"]
 
 [features]
 ffi = []

@@ -1,4 +1,4 @@
-use perigee_core::{
+use perigee::{
     toml,
     traits::{TryFromToml, TryToToml},
 };

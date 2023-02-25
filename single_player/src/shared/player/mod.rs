@@ -4,7 +4,7 @@ use crate::shared::input::Input;
 use crate::shared::interactions::InteractionGroup;
 use crate::shared::player::shared::*;
 use crate::shared::settings::GameSettings;
-use perigee_core::prelude::*;
+use perigee::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -206,8 +206,8 @@ impl Player {
     }
 
     /// Update the player based on what it knows about its internal properties
-    /// and the properties of its rigid body. This should be called after the [Input](perigee_core::input::Input)
-    /// and [GameSettings](perigee_core::settings::GameSettings) are updated but before the [PhysicsWorld](perigee_core::physics::PhysicsWorld)
+    /// and the properties of its rigid body. This should be called after the [Input](perigee::input::Input)
+    /// and [GameSettings](perigee::settings::GameSettings) are updated but before the [PhysicsWorld](perigee::physics::PhysicsWorld)
     /// steps and the `Player`'s events are extracted this frame.
     pub fn update(
         &mut self,

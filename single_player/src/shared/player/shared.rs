@@ -1,5 +1,5 @@
 use crate::shared::interactions::InteractionGroup;
-use perigee_core::prelude::*;
+use perigee::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub const COLLIDER_RAYCAST_OFFSET: f32 = 0.001;

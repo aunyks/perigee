@@ -1,7 +1,7 @@
 use crate::shared::{input::Input, player::Player, settings::GameSettings};
 use crate::{level_0::config::Level0Config, shared::events::PlayerEvent};
 use events::Level0Event;
-use perigee_core::prelude::*;
+use perigee::prelude::*;
 use serde::{Deserialize, Serialize};
 
 mod config;

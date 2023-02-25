@@ -12,11 +12,11 @@ lto = true
 crate-type = ["cdylib"]
 
 [features]
-ffi = ["perigee_core/ffi"]
+ffi = ["perigee/ffi"]
 level_0 = []
 
 [dependencies]
-perigee_core = { package = "core", path = "../core" }
+perigee = { package = "core", path = "../core" }
 
 # https://github.com/serde-rs/serde
 serde = { version = "1.0.97", features = ["derive"] }
