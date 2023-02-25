@@ -3,8 +3,10 @@
 An experimental, highly portable realtime 3D engine built with a focus on the web.
 
 ## Installation
+
 **Rust**
 Add the following to your `Cargo.toml`
+
 ```
 [dependencies]
 perigee = "0.1.0"
@@ -25,4 +27,7 @@ Instructions coming soon
   - A web browser
 
 ## Licensing
+
+Licensed under the MIT license.
+
 Copyright © 2023 Gerald Nash
