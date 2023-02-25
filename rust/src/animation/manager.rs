@@ -6,11 +6,13 @@ use gltf::Gltf;
 use crate::animation::asset::Animation;
 use crate::ffi::{loop_animation, stop_animation};
 
+#[derive(PartialEq, Eq)]
 enum RepeatMode {
     Loop,
     None,
 }
 
+/// An animation asset with additional playback details.
 pub struct DetailedAnimation {
     pub animation: Animation,
     pub time_scale: f32,
@@ -29,6 +31,8 @@ impl DetailedAnimation {
     }
 }
 
+/// An animation mixer / manager capable of playing multiple simulataneous
+/// animations with varying playback rates (including reverse playback).
 #[derive(Default)]
 pub struct AnimationManager {
     map: HashMap<String, DetailedAnimation>,
@@ -85,21 +89,19 @@ impl AnimationManager {
     }
 
     pub fn update(&mut self, delta_seconds: f32) {
-        for detailed_animation in self.map.values_mut() {
-            if detailed_animation.is_active {
-                let animation = &mut detailed_animation.animation;
-
-                let new_timeline_pos = animation.timeline_position() + delta_seconds;
-                if new_timeline_pos > animation.duration()
-                    && matches!(detailed_animation.repeat_mode, RepeatMode::Loop)
-                {
-                    animation.set_timeline_position(
-                        (new_timeline_pos - animation.duration()) * detailed_animation.time_scale,
-                    );
-                } else {
-                    animation.update(delta_seconds * detailed_animation.time_scale);
+        for detailed_animation in self.map.values_mut().filter(|danim| danim.is_active) {
+            let animation = &mut detailed_animation.animation;
+            if detailed_animation.repeat_mode == RepeatMode::Loop {
+                let new_timeline_pos =
+                    animation.timeline_position() + delta_seconds * detailed_animation.time_scale;
+                if new_timeline_pos > animation.duration() {
+                    animation.set_timeline_position(new_timeline_pos - animation.duration());
+                }
+                if new_timeline_pos <= 0.0 {
+                    animation.set_timeline_position(animation.duration() - new_timeline_pos);
                 }
             }
+            animation.update(delta_seconds * detailed_animation.time_scale);
         }
     }
 
@@ -112,7 +114,7 @@ impl AnimationManager {
             };
             detailed_anim.is_active = true;
             detailed_anim.repeat_mode = RepeatMode::Loop;
-            loop_animation(scene_object_name, anim_name);
+            loop_animation(scene_object_name, anim_name, detailed_anim.time_scale);
         }
     }
 

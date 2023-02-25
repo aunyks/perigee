@@ -11,7 +11,11 @@ extern "C" {
     fn play_2d_audio_hook(audio_name_ptr: *const c_char);
     fn stop_2d_audio_hook(audio_name_ptr: *const c_char);
     fn loop_2d_audio_hook(audio_name_ptr: *const c_char);
-    fn loop_animation_hook(scene_obj_name_ptr: *const c_char, anim_name_ptr: *const c_char);
+    fn loop_animation_hook(
+        scene_obj_name_ptr: *const c_char,
+        anim_name_ptr: *const c_char,
+        time_scale: f32,
+    );
     fn stop_animation_hook(scene_obj_name_ptr: *const c_char, anim_name_ptr: *const c_char);
     fn assistive_device_announce_hook(announcement_msg_name_ptr: *const c_char);
 }
@@ -63,22 +67,22 @@ pub fn loop_2d_audio(audio_name: &str) {
 }
 
 #[cfg(feature = "ffi")]
-pub fn loop_animation(scene_object_name: &str, anim_name: &str) {
+pub fn loop_animation(scene_object_name: &str, anim_name: &str, time_scale: f32) {
     let obj_cstring = CString::new(scene_object_name)
         .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     let anim_cstring = CString::new(anim_name)
         .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     unsafe {
-        loop_animation_hook(obj_cstring.as_ptr(), anim_cstring.as_ptr());
+        loop_animation_hook(obj_cstring.as_ptr(), anim_cstring.as_ptr(), time_scale);
     }
 }
 
 /// Repeatedly play the named animation on the named scene object.
 #[cfg(not(feature = "ffi"))]
-pub fn loop_animation(scene_object_name: &str, anim_name: &str) {
+pub fn loop_animation(scene_object_name: &str, anim_name: &str, time_scale: f32) {
     debug!(
-        "Play Animation: (Scene Object: {}, Animation Name: {})",
-        scene_object_name, anim_name,
+        "Loop Animation: (Scene Object: {}, Animation Name: {}, Time Scale: {})",
+        scene_object_name, anim_name, time_scale
     );
 }
 

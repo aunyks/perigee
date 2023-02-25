@@ -212,6 +212,7 @@ impl AnimationChannel {
     }
 }
 
+/// A playable animation capable of having translation, rotation, and scale channels.
 pub struct Animation {
     passive_timer: PassiveClock,
     fps: u32,
@@ -421,6 +422,14 @@ impl Animation {
     }
 
     pub fn update(&mut self, delta_seconds: f32) {
+        if delta_seconds >= 0.0 {
+            self.update_forward(delta_seconds);
+        } else {
+            self.update_reverse(delta_seconds);
+        }
+    }
+
+    fn update_forward(&mut self, delta_seconds: f32) {
         let old_frame = self.frame_at_time(self.timeline_position());
         self.passive_timer.tick(delta_seconds);
         let new_frame = self.frame_at_time(self.timeline_position());
@@ -430,6 +439,23 @@ impl Animation {
                 continue;
             }
             if listener_frame > &new_frame {
+                continue;
+            }
+
+            listener();
+        }
+    }
+
+    fn update_reverse(&mut self, delta_seconds: f32) {
+        let old_frame = self.frame_at_time(self.timeline_position());
+        self.passive_timer.tick_reverse(delta_seconds);
+        let new_frame = self.frame_at_time(self.timeline_position());
+
+        for (listener_frame, listener) in self.frame_listeners.iter_mut() {
+            if listener_frame >= &old_frame {
+                continue;
+            }
+            if listener_frame < &new_frame {
                 continue;
             }
 

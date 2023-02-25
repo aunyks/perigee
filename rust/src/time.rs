@@ -27,6 +27,12 @@ impl PassiveClock {
             .saturating_add(Duration::from_secs_f32(delta_seconds));
     }
 
+    pub fn tick_reverse(&mut self, delta_seconds: f32) {
+        self.0 = self
+            .0
+            .saturating_sub(Duration::from_secs_f32(delta_seconds));
+    }
+
     pub fn reset(&mut self) {
         self.0 = Duration::default();
     }
