@@ -1,8 +1,19 @@
 # Perigee
 
-Perigee is an experimental, highly portable game engine built with a focus on the web.
+An experimental, highly portable realtime 3D engine built with a focus on the web.
 
-## Requirements
+## Installation
+**Rust**
+Add the following to your `Cargo.toml`
+```
+[dependencies]
+perigee = "0.1.0"
+```
+
+**Blender / Web**
+Instructions coming soon
+
+## Development Requirements
 
 - Blender Addon (`blender_addon/`)
   - [Blender](https://www.blender.org/)
@@ -14,5 +25,4 @@ Perigee is an experimental, highly portable game engine built with a focus on th
   - A web browser
 
 ## Licensing
-
-This project is unlicensed. Please contact me if you'd like to use or extend this project!
+Copyright © 2023 Gerald Nash

@@ -1,7 +1,10 @@
 [package]
-name = "macros"
+name = "perigee_macros"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+authors = ["Gerald Nash"]
+description = "Macros for the Perigee realtime 3D engine. Please consume these through the perigee crate and not this crate."
 
 [lib]
 proc-macro = true
