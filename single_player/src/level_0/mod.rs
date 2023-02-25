@@ -22,8 +22,6 @@ pub struct Sim<'a> {
     #[serde(skip)]
     pub input: Input,
 }
-unsafe impl<'a> Send for Sim<'a> {}
-unsafe impl<'a> Sync for Sim<'a> {}
 
 impl<'a> Default for Sim<'a> {
     fn default() -> Self {
@@ -39,21 +37,16 @@ impl<'a> Default for Sim<'a> {
             level_event_channel: EventChannel::default(),
             pois: PointsOfInterest::default(),
         };
-        game.configure_self();
+        game.configure(None);
         game
     }
 }
 
 // Simple setup and accessors
 impl<'a> Sim<'a> {
-    /// Create a new game using default parameters and configuration.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn with_config(config: Level0Config) -> Self {
         let mut game = Self::default();
-        game.configure(config);
+        game.configure(Some(config));
         game
     }
 
@@ -67,41 +60,32 @@ impl<'a> Sim<'a> {
         self.settings
     }
 
-    /// Configure this game using its current configuration.
-    ///
-    /// You should prefer using the [configure()](crate::Sim::configure()) function
-    /// over this one.
-    pub fn configure_self(&mut self) {
+    /// Reconfigure this game using the provided configuration.
+    pub fn configure(&mut self, new_config: Option<Level0Config>) {
+        if let Some(config) = new_config {
+            self.config = config;
+        }
         self.physics = PhysicsWorld::with_config(self.config.physics());
         if let Some(queue_cap) = self.config.level_event_queue_capacity() {
             self.level_event_channel = EventChannel::with_capacity(queue_cap);
         }
     }
 
-    /// Reconfigure this game using the provided configuration.
-    pub fn configure(&mut self, new_config: Level0Config) {
-        self.config = new_config;
-        self.configure_self();
+    pub fn get_level_event(&self) -> Result<Level0Event, TryRecvError> {
+        self.level_event_channel.get_message()
+    }
+
+    pub fn scene_gltf_bytes(&self) -> &[u8] {
+        self.scene_gltf_bytes
+    }
+
+    pub fn player_gltf_bytes(&self) -> &[u8] {
+        self.player_gltf_bytes
     }
 }
 
 #[ffi]
 impl<'a> Sim<'a> {
-    #[ffi_never]
-    pub fn get_level_event(&self) -> Result<Level0Event, TryRecvError> {
-        self.level_event_channel.get_message()
-    }
-
-    #[ffi_never]
-    pub fn scene_gltf_bytes(&self) -> &[u8] {
-        self.scene_gltf_bytes
-    }
-
-    #[ffi_never]
-    pub fn player_gltf_bytes(&self) -> &[u8] {
-        self.player_gltf_bytes
-    }
-
     #[ffi_only]
     pub fn scene_gltf_bytes_ptr(&self) -> *const u8 {
         self.scene_gltf_bytes().as_ptr()
@@ -205,31 +189,15 @@ impl<'a> Sim<'a> {
 
     #[ffi_only]
     pub fn initialize_sim(&mut self) {
-        self.initialize().unwrap_or_else(|_| std::process::abort());
-    }
-
-    #[ffi_never]
-    /// Set up the game, creating entities that define the simulated scene.
-    pub fn initialize(&mut self) -> Result<(), String> {
         // Load static colliders using trimeshes extracted from geometries
         // within a glTF. This lets you create a level using your favoritte 3D
         // modeling tool.
-        let scene_gltf = match Gltf::from_slice(self.scene_gltf_bytes) {
-            Ok(gltf) => gltf,
-            Err(e) => {
-                return Err(e.to_string());
-            }
-        };
+        let scene_gltf = Gltf::from_slice(self.scene_gltf_bytes).unwrap();
 
         self.physics.load_from_gltf(&scene_gltf).unwrap();
         self.pois.load_from_gltf(&scene_gltf).unwrap();
 
-        let player_gltf = match Gltf::from_slice(self.player_gltf_bytes) {
-            Ok(gltf) => gltf,
-            Err(e) => {
-                return Err(e.to_string());
-            }
-        };
+        let player_gltf = Gltf::from_slice(self.player_gltf_bytes).unwrap();
         self.player = Player::with_config(self.config().player());
         self.player.add_to_physics_world(
             &mut self.physics.rigid_body_set,
@@ -237,8 +205,6 @@ impl<'a> Sim<'a> {
             None,
         );
         self.player.add_gltf_animations(&player_gltf);
-
-        Ok(())
     }
 
     /// Step the game simulation by the provided number of seconds.
@@ -295,5 +261,5 @@ pub extern "C" fn destroy_sim(sim_ptr: *mut Sim) {
 #[no_mangle]
 pub extern "C" fn create_sim() -> *mut Sim<'static> {
     init_perigee_logger();
-    Box::into_raw(Box::new(Sim::new()))
+    Box::into_raw(Box::new(Sim::default()))
 }
