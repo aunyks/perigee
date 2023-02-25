@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// A basic queue structure.
 #[derive(Default, Serialize, Deserialize)]
 pub struct Queue<T> {
     vec: Vec<T>,

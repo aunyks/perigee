@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
+/// A basic finite state machine. Designed to be used
+/// with an enumerated type.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StateMachine<T> {
     state: T,

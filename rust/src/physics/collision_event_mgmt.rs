@@ -3,6 +3,8 @@ use rapier3d::prelude::{ChannelEventCollector, CollisionEvent, ContactForceEvent
 
 use crate::config::PhysicsConfig;
 
+/// A structure for managing contact events (collision and contact force events)
+/// that took place during physics simulation.
 pub struct ContactEventManager {
     channel_event_collector: ChannelEventCollector,
     collision_event_receiver: Receiver<CollisionEvent>,

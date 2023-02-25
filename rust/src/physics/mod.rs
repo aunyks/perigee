@@ -18,32 +18,44 @@ mod handle_map;
 
 #[derive(Error, Debug)]
 pub enum PhysicsWorldInitError {
+    /// The binary payload for the glTF couldn't be found.
     #[error("can't access the provided glTF's binary payload")]
     CantAccessBlob,
+    /// The Perigee-specific glTF extras for a glTF node couldn't be found.
     #[error("glTF must have Perigee extras to load physics world")]
     PerigeeExtrasUndetected,
+    /// The Perigee-specific glTF extras didn't follow the expected schema.
     #[error("invalid JSON stored in glTF node extras")]
     InvalidPerigeeExtrasData,
+    /// A glTF mesh didn't have a name.
     #[error("glTF mesh must have a name")]
     UnnamedMesh,
+    /// A glTF node didn't have a name.
     #[error("glTF node must have a name")]
     UnnamedNode,
+    /// A glTF meshes was defined as a sensor type.
     #[error("glTF mesh cannot be imported as sensor")]
     MeshCantBeSensor,
+    /// The accessor for the primitive indices of a trimesh couldn't be found.
     #[error("no primitive accessor for trimesh")]
     NoPrimitiveAccessorForTrimesh,
+    /// An accessor for a trimesh's vertex positions couldn't be found.
     #[error("no vertex positions accessor found for mesh")]
     NoVertexPositionsAccessor,
-    #[error("no vertex positions found for mesh")]
-    NoVertexPositionsValues,
+    /// Mesh indices accessor data type was neither u16 nor u32.
     #[error("indices accessor data type was neither U16 nor U32")]
     InvalidIndicesDataType,
+    /// No mesh indices were found for a mesh.
     #[error("no indices found for mesh")]
     NoIndicesFound,
+    /// No vertices were found for a mesh.
     #[error("no vertices found for mesh")]
     NoVerticesFound,
 }
 
+/// The physics management structure. This is a
+/// thin wrapper around [the Rapier physics engine](https://rapier.rs)
+/// with additional utilities.
 #[derive(Serialize, Deserialize)]
 pub struct PhysicsWorld {
     pub gravity: Vector3<f32>,

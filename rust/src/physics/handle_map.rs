@@ -2,6 +2,9 @@ use crate::data_structures::BiMap;
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 
+/// A [BiMap](crate::data_structures::BiMap)
+/// for naming [Rapier](https://rapier.rs) RigidBodyHandles
+/// and ColliderHandles.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct NamedHandleMap<T>
 where

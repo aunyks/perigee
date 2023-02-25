@@ -4,6 +4,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::rc::Rc;
 
+/// A bidirectional HashMap.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct BiMap<A, B>
 where

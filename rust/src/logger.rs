@@ -2,6 +2,8 @@ use log::{error, set_logger, set_max_level, warn, Level, LevelFilter, Log, Metad
 #[cfg(feature = "ffi")]
 use std::ffi::{c_char, CString};
 
+/// Set a [PerigeeLogger](crate::logger::PerigeeLogger) as the global logging implementation
+/// if none is set.
 pub fn init_perigee_logger() {
     #[cfg(debug_assertions)]
     let max_level = LevelFilter::Trace;
@@ -53,6 +55,8 @@ fn on_trace(msg: String) {
     println!("[TRACE] {}", msg);
 }
 
+/// A global logger implementation designed
+/// for use in WebAssembly.
 struct PerigeeLogger;
 
 impl Log for PerigeeLogger {
