@@ -23,7 +23,7 @@ pub fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
 pub enum AnimationCreationError {
     #[error("could not find name in glTF document")]
     NameNotFound,
-    #[error("found differing amount of keyframe timestamps and properties")]
+    #[error("theres not an even amount of keyframe timestamps for each keyframe property")]
     MismatchedKeyframes,
     #[error("could not find a binary blob in glTF document")]
     NoBinaryBlob,
@@ -353,16 +353,18 @@ impl Animation {
                             }
                         };
 
-                        if keyframe_timestamps.len() != keyframe_properties.len() {
+                        if keyframe_timestamps.len() % keyframe_properties.len() != 0 {
                             return Err(AnimationCreationError::MismatchedKeyframes);
                         }
 
+                        let frames_per_property =
+                            keyframe_timestamps.len() / keyframe_properties.len();
                         let mut keyframes: Vec<Keyframe> =
                             Vec::with_capacity(keyframe_properties.len());
-                        for i in 0..keyframe_timestamps.len() {
+                        for i in (0..keyframe_timestamps.len()).step_by(frames_per_property) {
                             keyframes.push(Keyframe::new(
                                 keyframe_timestamps[i],
-                                keyframe_properties[i],
+                                keyframe_properties[i / frames_per_property],
                             ));
                         }
 
