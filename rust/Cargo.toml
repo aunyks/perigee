@@ -4,7 +4,7 @@ version = "0.2.1"
 edition = "2021"
 license = "MIT"
 authors = ["Gerald Nash"]
-description = "An experimental, highly portable realtime 3D engine built with a focus on the web."
+description = "A headless realtime 3D engine built with a focus on the web."
 
 [features]
 ffi = []
