@@ -16,15 +16,15 @@ If you're not interested in portability, or if you absolutely despise writing We
 
 ## Installation
 
-**Rust**
+**Rust**  
 Add the following to your `Cargo.toml`
 
-```
+```toml
 [dependencies]
-perigee = "0.1.0"
+perigee = "0.2.1"
 ```
 
-**Blender / Web**
+**Blender**  
 Instructions coming soon
 
 ## Development Requirements
@@ -35,8 +35,6 @@ Instructions coming soon
   - [Rust](https://www.rust-lang.org/) and its Cargo package manager to build the core game simulation
   - [Rustfmt](https://github.com/rust-lang/rustfmt) for formatting
   - [Clippy](https://github.com/rust-lang/rust-clippy) for linting
-- Web Artifacts (`web/`)
-  - A web browser
 
 ## Licensing
 
