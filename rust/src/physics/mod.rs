@@ -51,6 +51,8 @@ pub enum PhysicsWorldInitError {
     /// No vertices were found for a mesh.
     #[error("no vertices found for mesh")]
     NoVerticesFound,
+    #[error("could not get accessor bytes")]
+    CouldntAccessBytes,
 }
 
 /// The physics management structure. This is a
@@ -200,7 +202,13 @@ impl PhysicsWorld {
                                 }
                             };
 
-                            let indices_bytes = access_gltf_bytes(gltf_bytes, &indices_accesor);
+                            let indices_bytes = if let Ok(indices_bytes) =
+                                access_gltf_bytes(gltf_bytes, &indices_accesor)
+                            {
+                                indices_bytes
+                            } else {
+                                return Err(PhysicsWorldInitError::CouldntAccessBytes);
+                            };
                             let mut indices: Vec<[u32; 3]> =
                                 Vec::with_capacity(indices_accesor.count() / 3);
 
@@ -256,8 +264,13 @@ impl PhysicsWorld {
                                     return Err(PhysicsWorldInitError::NoVertexPositionsAccessor);
                                 }
                                 Some(vertex_positions_accessor) => {
-                                    let positions_bytes =
-                                        access_gltf_bytes(gltf_bytes, &vertex_positions_accessor);
+                                    let positions_bytes = if let Ok(positions_bytes) =
+                                        access_gltf_bytes(gltf_bytes, &vertex_positions_accessor)
+                                    {
+                                        positions_bytes
+                                    } else {
+                                        return Err(PhysicsWorldInitError::CouldntAccessBytes);
+                                    };
 
                                     let mut floats: Vec<f32> =
                                         Vec::with_capacity(positions_bytes.len() / 4);

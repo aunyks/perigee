@@ -1,10 +1,20 @@
 use gltf::accessor::Accessor;
+use thiserror::Error;
 
-pub fn access_gltf_bytes<'a>(gltf_bytes: &'a Vec<u8>, accessor: &'a Accessor) -> &'a [u8] {
-    let buffer_view = accessor
-        .view()
-        .expect("Could not get glTF buffer's accessor.");
+#[derive(Error, Debug)]
+pub enum GltfAccessorViewError {
+    #[error("could not get accessor for provided glTF buffer")]
+    NoAccessorFound,
+}
 
-    let view_start = buffer_view.offset() + accessor.offset();
-    &gltf_bytes[view_start..view_start + buffer_view.length()]
+pub fn access_gltf_bytes<'a>(
+    gltf_bytes: &'a Vec<u8>,
+    accessor: &'a Accessor,
+) -> Result<&'a [u8], GltfAccessorViewError> {
+    if let Some(buffer_view) = accessor.view() {
+        let view_start = buffer_view.offset() + accessor.offset();
+        Ok(&gltf_bytes[view_start..view_start + buffer_view.length()])
+    } else {
+        Err(GltfAccessorViewError::NoAccessorFound)
+    }
 }

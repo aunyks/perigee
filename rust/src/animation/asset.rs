@@ -27,6 +27,8 @@ pub enum AnimationCreationError {
     MismatchedKeyframes,
     #[error("could not find a binary blob in glTF document")]
     NoBinaryBlob,
+    #[error("could not get accessor bytes")]
+    CouldntAccessBytes,
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
@@ -248,7 +250,13 @@ impl Animation {
                         let channel_sampler = channel.sampler();
 
                         let sampler_input = channel_sampler.input();
-                        let sampler_input_bytes = access_gltf_bytes(&gltf_bytes, &sampler_input);
+                        let sampler_input_bytes = if let Ok(sampler_input_bytes) =
+                            access_gltf_bytes(&gltf_bytes, &sampler_input)
+                        {
+                            sampler_input_bytes
+                        } else {
+                            return Err(AnimationCreationError::CouldntAccessBytes);
+                        };
 
                         // If we have 0 timestamps then we can skip this iteration.
                         // One timestamp f32 would be 4 bytes, so if we have less than 4 bytes
@@ -282,7 +290,13 @@ impl Animation {
                         }
 
                         let sampler_output = channel_sampler.output();
-                        let sampler_output_bytes = access_gltf_bytes(&gltf_bytes, &sampler_output);
+                        let sampler_output_bytes = if let Ok(sampler_output_bytes) =
+                            access_gltf_bytes(&gltf_bytes, &sampler_output)
+                        {
+                            sampler_output_bytes
+                        } else {
+                            return Err(AnimationCreationError::CouldntAccessBytes);
+                        };
 
                         let mut keyframe_properties: Vec<AnimatedProperty> =
                             Vec::with_capacity(keyframe_timestamps.len());
