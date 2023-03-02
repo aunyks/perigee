@@ -1,29 +1,30 @@
-import bpy
-from . import property_manager
-
 bl_info = {
-    "name": "Perigee Realtime Engine Extension",
+    "name": "Perigee Realtime Engine Addon",
     "category": "Generic",
-    "version": [0, 1, 0],
+    "version": (0, 2, 0),
     "blender": (2, 80, 0),
     "location": "3D Viewport Side Panel & File > Export > glTF 2.0",
     "description": "An addon for specifying simulation scenes for the Perigee realtime engine.",
     "tracker_url": "https://github.com/aunyks/perigee/issues/",
-    "isDraft": False,
-    "developer": "Gerald Nash",
-    "url": "https:/github.com/aunyks/perigee",
+    "author": "Gerald Nash",
 }
+
+import bpy
+from . import property_manager
+from . import poi_arrow_importer
 
 def register():
     bpy.utils.register_class(PerigeeGltfExportProperties)
     bpy.types.Scene.PerigeeGltfExportProperties = bpy.props.PointerProperty(type=PerigeeGltfExportProperties)
     property_manager.register()
+    poi_arrow_importer.register()
 
 def unregister():
     unregister_panel()
     del bpy.types.Scene.PerigeeGltfExportProperties
     bpy.utils.unregister_class(PerigeeGltfExportProperties)
     property_manager.unregister()
+    poi_arrow_importer.unregister()
 
 def register_panel():
     try:
@@ -105,7 +106,7 @@ class glTF2ExportUserExtension:
             if gltf2_scene.extras is None:
                 gltf2_scene.extras = {}
             gltf2_scene.extras = {
-                "perigeeBlenderAddonVersion": [0, 1, 0]
+                "perigeeBlenderAddonVersion": [0, 2, 0]
             }
 
 class glTF2ImportUserExtension:

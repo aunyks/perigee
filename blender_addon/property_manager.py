@@ -77,13 +77,13 @@ class VIEW3D_PT_object_sim_settings(bpy.types.Panel):
         layout = self.layout
         if context.object:
             layout.prop(context.object, "name")
-            if context.object.type == "EMPTY" and context.object.empty_display_type not in ["SPHERE", "CUBE"]:
-                layout.prop(context.object.sim_settings, "is_point_of_interest")
-            if context.object.sim_settings.is_point_of_interest == False:
-                graphics_col = layout.column(align = True)
-                self.draw_graphics_widgets(context.object, graphics_col)
-                physics_col = layout.column(align = True)
-                self.draw_physics_widgets(context.object, physics_col)
+            layout.separator()
+            layout.prop(context.object.sim_settings, "is_point_of_interest")
+            graphics_col = layout.column(align = True)
+            self.draw_graphics_widgets(context.object, graphics_col)
+            layout.separator()
+            physics_col = layout.column(align = True)
+            self.draw_physics_widgets(context.object, physics_col)
         else:
             self.layout.label(text = "No object selected")
 
