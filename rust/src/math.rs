@@ -1,5 +1,5 @@
 use rapier3d::na::{Isometry, UnitQuaternion, Vector3};
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 
 #[inline]
 pub fn lerp<T>(start: T, end: T, t: T) -> T
@@ -52,6 +52,19 @@ pub fn project_on_plane(vector: &Vector3<f32>, plane_normal: &Vector3<f32>) -> V
         let dot = vector.dot(plane_normal);
         return vector - plane_normal * dot / squared_magnitude;
     }
+}
+
+#[inline]
+pub fn remap<T>(num: T, start_min: T, start_max: T, end_min: T, end_max: T) -> T
+where
+    T: Mul<Output = T>
+        + Add<Output = T>
+        + From<f32>
+        + Sub<T, Output = T>
+        + Div<T, Output = T>
+        + Copy,
+{
+    (num - start_min) * (end_max - end_min) / (start_max - start_min) + end_min
 }
 
 #[repr(C)]
