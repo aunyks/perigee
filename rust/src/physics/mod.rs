@@ -2,11 +2,11 @@ use crate::config::PhysicsConfig;
 use crate::perigee_gltf::extras::{GltfBodyType, GltfExtras, GltfOptimizedShape};
 use crate::perigee_gltf::util::access_gltf_bytes;
 use crate::physics::collision_event_mgmt::ContactEventManager;
-
 use crate::physics::handle_map::NamedHandleMap;
 use crate::traits::FromConfig;
 use crossbeam::channel::TryRecvError;
 use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemantic};
+use log::warn;
 use rapier3d::{
     na::{Point3, Quaternion, Translation3, UnitQuaternion, Vector3},
     prelude::*,
@@ -102,6 +102,10 @@ impl FromConfig for PhysicsWorld {
             rb_handle_map: NamedHandleMap::default(),
             col_handle_map: NamedHandleMap::default(),
         }
+    }
+
+    fn set_config<'a>(&mut self, _config: Self::Config<'a>) {
+        warn!("Perigee PhysicsWorld doesn't allow resetting configuration");
     }
 }
 
