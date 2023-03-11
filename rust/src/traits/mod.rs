@@ -17,3 +17,11 @@ pub trait TryFromBytes {
 pub trait TryToBytes {
     fn try_to_bytes(&self) -> Result<Vec<u8>, String>;
 }
+
+pub trait FromConfig {
+    type Config<'a>;
+
+    fn from_config<'a>(config: Self::Config<'a>) -> Self;
+
+    fn set_config<'a>(&mut self, _config: Self::Config<'a>) {}
+}

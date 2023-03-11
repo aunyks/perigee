@@ -4,6 +4,7 @@ use crate::perigee_gltf::util::access_gltf_bytes;
 use crate::physics::collision_event_mgmt::ContactEventManager;
 
 use crate::physics::handle_map::NamedHandleMap;
+use crate::traits::FromConfig;
 use crossbeam::channel::TryRecvError;
 use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemantic};
 use rapier3d::{
@@ -79,11 +80,11 @@ pub struct PhysicsWorld {
     pub col_handle_map: NamedHandleMap<ColliderHandle>,
 }
 
-impl Default for PhysicsWorld {
-    fn default() -> Self {
-        let default_config = PhysicsConfig::default();
+impl FromConfig for PhysicsWorld {
+    type Config<'a> = &'a PhysicsConfig;
+    fn from_config<'a>(config: Self::Config<'a>) -> Self {
         Self {
-            gravity: default_config.gravity().into(),
+            gravity: config.gravity().into(),
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
             integration_parameters: IntegrationParameters::default(),
@@ -96,11 +97,17 @@ impl Default for PhysicsWorld {
             query_pipeline: QueryPipeline::new(),
             pipeline: PhysicsPipeline::new(),
             contact_event_manager: ContactEventManager::with_capacity(
-                default_config.event_queue_capacity(),
+                config.event_queue_capacity(),
             ),
             rb_handle_map: NamedHandleMap::default(),
             col_handle_map: NamedHandleMap::default(),
         }
+    }
+}
+
+impl Default for PhysicsWorld {
+    fn default() -> Self {
+        Self::from_config(&PhysicsConfig::default())
     }
 }
 
@@ -441,17 +448,6 @@ impl PhysicsWorld {
         let handle_index = handle_parts.0;
         let handle_generation = handle_parts.1;
         body.user_data = u128::from(handle_index).rotate_left(32) | u128::from(handle_generation);
-    }
-
-    /// Create physics world with default parameters in addition to the provided gravity.
-    pub fn with_config(config: PhysicsConfig) -> Self {
-        Self {
-            gravity: config.gravity().into(),
-            contact_event_manager: ContactEventManager::with_capacity(
-                config.event_queue_capacity(),
-            ),
-            ..Default::default()
-        }
     }
 }
 
