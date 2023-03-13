@@ -21,7 +21,7 @@ Add the following to your `Cargo.toml`
 
 ```toml
 [dependencies]
-perigee = "0.3.3"
+perigee = "0.3.4"
 ```
 
 **Blender**  

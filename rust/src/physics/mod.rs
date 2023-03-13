@@ -439,6 +439,10 @@ impl PhysicsWorld {
         self.contact_event_manager.get_contact_force_event()
     }
 
+    pub fn eviscerate_event_channels(&self) -> Result<(), TryRecvError> {
+        self.contact_event_manager.eviscerate_channels()
+    }
+
     pub fn intersections_with_collider(
         &self,
         collider: ColliderHandle,

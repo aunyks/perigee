@@ -31,4 +31,14 @@ impl<T> EventChannel<T> {
     pub fn get_message(&self) -> Result<T, TryRecvError> {
         self.receiver.try_recv()
     }
+
+    pub fn eviscerate(&self) -> Result<(), TryRecvError> {
+        while !self.receiver.is_empty() {
+            match self.get_message() {
+                Err(e) => return Err(e),
+                _ => {}
+            }
+        }
+        Ok(())
+    }
 }

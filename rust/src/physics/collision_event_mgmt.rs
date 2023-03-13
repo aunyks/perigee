@@ -42,4 +42,20 @@ impl ContactEventManager {
     pub fn get_contact_force_event(&self) -> Result<ContactForceEvent, TryRecvError> {
         self.contact_force_event_receiver.try_recv()
     }
+
+    pub fn eviscerate_channels(&self) -> Result<(), TryRecvError> {
+        while !self.contact_force_event_receiver.is_empty() {
+            match self.get_contact_force_event() {
+                Err(e) => return Err(e),
+                _ => {}
+            }
+        }
+        while !self.collision_event_receiver.is_empty() {
+            match self.get_collider_event() {
+                Err(e) => return Err(e),
+                _ => {}
+            }
+        }
+        Ok(())
+    }
 }
