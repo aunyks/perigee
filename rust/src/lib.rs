@@ -9,6 +9,7 @@ pub mod logger;
 pub mod math;
 pub mod perigee_gltf;
 pub mod physics;
+pub mod pointers;
 pub mod time;
 pub mod traits;
 pub mod types;
@@ -23,6 +24,7 @@ pub mod prelude {
     pub use crate::math::*;
     pub use crate::perigee_gltf::poi::*;
     pub use crate::physics::*;
+    pub use crate::pointers::*;
     pub use crate::time::*;
     pub use crate::traits::*;
     pub use crate::types::*;
