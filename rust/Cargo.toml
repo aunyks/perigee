@@ -1,6 +1,6 @@
 [package]
 name = "perigee"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 license = "MIT"
 authors = ["Gerald Nash"]
@@ -30,7 +30,7 @@ bincode = { version = "1.3.3" }
 toml = { version = "0.5.8" }
 
 # https://github.com/serde-rs/serde
-serde = { version = "1.0.97", features = ["derive"] }
+serde = { version = "1.0.97", features = ["derive", "rc"] }
 
 # https://github.com/serde-rs/json
 serde_json = { version = "1.0.87" }
