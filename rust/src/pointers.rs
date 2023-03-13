@@ -22,3 +22,11 @@ impl<T: PartialEq> PartialEq<RefCell<T>> for Shared<T> {
         &*self.inner == other
     }
 }
+
+impl<T> Shared<T> {
+    pub fn new(value: T) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(value)),
+        }
+    }
+}
