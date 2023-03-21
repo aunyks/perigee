@@ -1,6 +1,4 @@
 use log::{error, set_logger, set_max_level, warn, Level, LevelFilter, Log, Metadata, Record};
-#[cfg(feature = "ffi")]
-use std::ffi::{c_char, CString};
 
 /// Set a [PerigeeLogger](crate::logger::PerigeeLogger) as the global logging implementation
 /// if none is set.
@@ -23,35 +21,35 @@ pub fn init_perigee_logger() {
 
 #[cfg(feature = "ffi")]
 extern "C" {
-    fn on_error(string_ptr: *const c_char);
-    fn on_warn(string_ptr: *const c_char);
-    fn on_debug(string_ptr: *const c_char);
-    fn on_info(string_ptr: *const c_char);
-    fn on_trace(string_ptr: *const c_char);
+    fn on_error(string_ptr: *const u8, string_len: usize);
+    fn on_warn(string_ptr: *const u8, string_len: usize);
+    fn on_debug(string_ptr: *const u8, string_len: usize);
+    fn on_info(string_ptr: *const u8, string_len: usize);
+    fn on_trace(string_ptr: *const u8, string_len: usize);
 }
 
 #[cfg(not(feature = "ffi"))]
-fn on_error(msg: String) {
+fn on_error(msg: &str) {
     println!("[ERROR] {}", msg);
 }
 
 #[cfg(not(feature = "ffi"))]
-fn on_warn(msg: String) {
+fn on_warn(msg: &str) {
     println!("[WARN] {}", msg);
 }
 
 #[cfg(not(feature = "ffi"))]
-fn on_debug(msg: String) {
+fn on_debug(msg: &str) {
     println!("[DEBUG] {}", msg);
 }
 
 #[cfg(not(feature = "ffi"))]
-fn on_info(msg: String) {
+fn on_info(msg: &str) {
     println!("[INFO] {}", msg);
 }
 
 #[cfg(not(feature = "ffi"))]
-fn on_trace(msg: String) {
+fn on_trace(msg: &str) {
     println!("[TRACE] {}", msg);
 }
 
@@ -69,26 +67,25 @@ impl Log for PerigeeLogger {
             let msg_string = format!("{}", record.args());
             #[cfg(feature = "ffi")]
             {
-                let msg_cstring = CString::new(msg_string)
-                    .unwrap_or(CString::new("Unknown log received. Something's wrong").unwrap());
+                let msg_string_len = msg_string.len();
                 unsafe {
                     match record.level() {
-                        Level::Error => on_error(msg_cstring.as_ptr()),
-                        Level::Warn => on_warn(msg_cstring.as_ptr()),
-                        Level::Info => on_info(msg_cstring.as_ptr()),
-                        Level::Debug => on_debug(msg_cstring.as_ptr()),
-                        Level::Trace => on_trace(msg_cstring.as_ptr()),
+                        Level::Error => on_error(msg_string.as_ptr(), msg_string_len),
+                        Level::Warn => on_warn(msg_string.as_ptr(), msg_string_len),
+                        Level::Info => on_info(msg_string.as_ptr(), msg_string_len),
+                        Level::Debug => on_debug(msg_string.as_ptr(), msg_string_len),
+                        Level::Trace => on_trace(msg_string.as_ptr(), msg_string_len),
                     };
                 };
             }
             #[cfg(not(feature = "ffi"))]
             {
                 match record.level() {
-                    Level::Error => on_error(msg_string),
-                    Level::Warn => on_warn(msg_string),
-                    Level::Info => on_info(msg_string),
-                    Level::Debug => on_debug(msg_string),
-                    Level::Trace => on_trace(msg_string),
+                    Level::Error => on_error(&msg_string),
+                    Level::Warn => on_warn(&msg_string),
+                    Level::Info => on_info(&msg_string),
+                    Level::Debug => on_debug(&msg_string),
+                    Level::Trace => on_trace(&msg_string),
                 };
             }
         }

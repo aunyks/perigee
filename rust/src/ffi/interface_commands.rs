@@ -1,46 +1,65 @@
 //! Functions that communicate directly with the
 //! interface when compiled to WebAssembly.
-
 #[cfg(not(feature = "ffi"))]
 use log::debug;
-#[cfg(feature = "ffi")]
-use std::ffi::{c_char, CString};
 
 #[cfg(feature = "ffi")]
 extern "C" {
     fn play_audio_hook(
-        scene_obj_name_ptr: *const c_char,
-        audio_name_ptr: *const c_char,
+        scene_obj_name_ptr: *const u8,
+        scene_obj_name_len: usize,
+        audio_name_ptr: *const u8,
+        audio_name_len: usize,
         playback_rate: f32,
     );
     fn loop_audio_hook(
-        scene_obj_name_ptr: *const c_char,
-        audio_name_ptr: *const c_char,
+        scene_obj_name_ptr: *const u8,
+        scene_obj_name_len: usize,
+        audio_name_ptr: *const u8,
+        audio_name_len: usize,
         playback_rate: f32,
     );
-    fn stop_audio_hook(scene_obj_name_ptr: *const c_char, audio_name_ptr: *const c_char);
+    fn stop_audio_hook(
+        scene_obj_name_ptr: *const u8,
+        scene_obj_name_len: usize,
+        audio_name_ptr: *const u8,
+        audio_name_len: usize,
+    );
     fn play_animation_hook(
-        scene_obj_name_ptr: *const c_char,
-        anim_name_ptr: *const c_char,
+        scene_obj_name_ptr: *const u8,
+        scene_obj_name_len: usize,
+        anim_name_ptr: *const u8,
+        anim_name_len: usize,
         time_scale: f32,
     );
     fn loop_animation_hook(
-        scene_obj_name_ptr: *const c_char,
-        anim_name_ptr: *const c_char,
+        scene_obj_name_ptr: *const u8,
+        scene_obj_name_len: usize,
+        anim_name_ptr: *const u8,
+        anim_name_len: usize,
         time_scale: f32,
     );
-    fn stop_animation_hook(scene_obj_name_ptr: *const c_char, anim_name_ptr: *const c_char);
-    fn assistive_device_announce_hook(announcement_msg_name_ptr: *const c_char);
+    fn stop_animation_hook(
+        scene_obj_name_ptr: *const u8,
+        scene_obj_name_len: usize,
+        anim_name_ptr: *const u8,
+        anim_name_len: usize,
+    );
+    fn assistive_device_announce_hook(
+        announcement_msg_name_ptr: *const u8,
+        announcement_msg_name_len: usize,
+    );
 }
-
 #[cfg(feature = "ffi")]
 pub fn play_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32) {
-    let obj_cstring = CString::new(scene_object_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
-    let msg_cstring = CString::new(audio_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     unsafe {
-        play_audio_hook(obj_cstring.as_ptr(), msg_cstring.as_ptr(), playback_rate);
+        play_audio_hook(
+            scene_object_name.as_ptr(),
+            scene_object_name.len(),
+            audio_name.as_ptr(),
+            audio_name.len(),
+            playback_rate,
+        );
     }
 }
 
@@ -55,12 +74,14 @@ pub fn play_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32)
 
 #[cfg(feature = "ffi")]
 pub fn loop_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32) {
-    let obj_cstring = CString::new(scene_object_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
-    let msg_cstring = CString::new(audio_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     unsafe {
-        loop_audio_hook(obj_cstring.as_ptr(), msg_cstring.as_ptr(), playback_rate);
+        loop_audio_hook(
+            scene_object_name.as_ptr(),
+            scene_object_name.len(),
+            audio_name.as_ptr(),
+            audio_name.len(),
+            playback_rate,
+        );
     }
 }
 
@@ -76,12 +97,13 @@ pub fn loop_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32)
 
 #[cfg(feature = "ffi")]
 pub fn stop_audio(scene_object_name: &str, audio_name: &str) {
-    let obj_cstring = CString::new(scene_object_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
-    let msg_cstring = CString::new(audio_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     unsafe {
-        stop_audio_hook(obj_cstring.as_ptr(), msg_cstring.as_ptr());
+        stop_audio_hook(
+            scene_object_name.as_ptr(),
+            scene_object_name.len(),
+            audio_name.as_ptr(),
+            audio_name.len(),
+        );
     }
 }
 
@@ -96,12 +118,14 @@ pub fn stop_audio(scene_object_name: &str, audio_name: &str) {
 
 #[cfg(feature = "ffi")]
 pub fn play_animation(scene_object_name: &str, anim_name: &str, time_scale: f32) {
-    let obj_cstring = CString::new(scene_object_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
-    let anim_cstring = CString::new(anim_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     unsafe {
-        play_animation_hook(obj_cstring.as_ptr(), anim_cstring.as_ptr(), time_scale);
+        play_animation_hook(
+            scene_object_name.as_ptr(),
+            scene_object_name.len(),
+            anim_name.as_ptr(),
+            anim_name.len(),
+            time_scale,
+        );
     }
 }
 
@@ -116,12 +140,14 @@ pub fn play_animation(scene_object_name: &str, anim_name: &str, time_scale: f32)
 
 #[cfg(feature = "ffi")]
 pub fn loop_animation(scene_object_name: &str, anim_name: &str, time_scale: f32) {
-    let obj_cstring = CString::new(scene_object_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
-    let anim_cstring = CString::new(anim_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     unsafe {
-        loop_animation_hook(obj_cstring.as_ptr(), anim_cstring.as_ptr(), time_scale);
+        loop_animation_hook(
+            scene_object_name.as_ptr(),
+            scene_object_name.len(),
+            anim_name.as_ptr(),
+            anim_name.len(),
+            time_scale,
+        );
     }
 }
 
@@ -136,12 +162,13 @@ pub fn loop_animation(scene_object_name: &str, anim_name: &str, time_scale: f32)
 
 #[cfg(feature = "ffi")]
 pub fn stop_animation(scene_object_name: &str, anim_name: &str) {
-    let obj_cstring = CString::new(scene_object_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
-    let anim_cstring = CString::new(anim_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     unsafe {
-        stop_animation_hook(obj_cstring.as_ptr(), anim_cstring.as_ptr());
+        stop_animation_hook(
+            scene_object_name.as_ptr(),
+            scene_object_name.len(),
+            anim_name.as_ptr(),
+            anim_name.len(),
+        );
     }
 }
 
@@ -156,10 +183,8 @@ pub fn stop_animation(scene_object_name: &str, anim_name: &str) {
 
 #[cfg(feature = "ffi")]
 pub fn assistive_device_announce(announcement_msg_name: &str) {
-    let msg_cstring = CString::new(announcement_msg_name)
-        .unwrap_or(CString::new("Unknown string received. Something's wrong").unwrap());
     unsafe {
-        assistive_device_announce_hook(msg_cstring.as_ptr());
+        assistive_device_announce_hook(announcement_msg_name.as_ptr(), announcement_msg_name.len());
     }
 }
 
