@@ -7,13 +7,17 @@ pub struct EventChannel<T> {
 
 impl<T> Default for EventChannel<T> {
     fn default() -> Self {
-        Self::with_capacity(1)
+        Self::with_capacity(0)
     }
 }
 
 impl<T> EventChannel<T> {
     pub fn with_capacity(cap: usize) -> Self {
-        let (sender, receiver) = crossbeam::channel::bounded(cap);
+        let (sender, receiver) = if cap > 0 {
+            crossbeam::channel::bounded(cap)
+        } else {
+            crossbeam::channel::unbounded()
+        };
 
         Self { sender, receiver }
     }

@@ -13,6 +13,19 @@ import bpy
 from . import property_manager
 from . import poi_arrow_importer
 
+def generate_deduped_names():
+    name_occurrences = {}
+    while True:
+        name = yield None
+        occurrences = name_occurrences.get(name, 0)
+        display_name = name
+        if occurrences > 0:
+            display_name = name + " " + str(occurrences)
+        else:
+            name_occurrences[name] = 1
+        name_occurrences[name] += 1
+        yield display_name
+
 def register():
     bpy.utils.register_class(PerigeeGltfExportProperties)
     bpy.types.Scene.PerigeeGltfExportProperties = bpy.props.PointerProperty(type=PerigeeGltfExportProperties)
@@ -72,8 +85,13 @@ class GLTF_PT_UserExtensionExportPanel(bpy.types.Panel):
 class glTF2ExportUserExtension:
     def __init__(self):
         self.properties = bpy.context.scene.PerigeeGltfExportProperties
+        self.name_deduper = generate_deduped_names()
+        next(self.name_deduper)
 
     def gather_node_hook(self, gltf2_object, blender_object, export_settings):
+        gltf2_object.name = self.name_deduper.send(gltf2_object.name)
+        next(self.name_deduper)
+
         if self.properties.enabled:
             # We use extras instead of extensions because the Rust 
             # glTF loader doesn't support retrieving extensions

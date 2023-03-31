@@ -8,8 +8,8 @@ use std::rc::Rc;
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct BiMap<A, B>
 where
-    A: Eq + Hash,
-    B: Eq + Hash,
+    A: Eq + Hash + ?Sized,
+    B: Eq + Hash + ?Sized,
 {
     left_to_right: HashMap<Rc<A>, Rc<B>>,
     right_to_left: HashMap<Rc<B>, Rc<A>>,
@@ -40,5 +40,47 @@ where
 
     pub fn get_reverse(&self, b: &B) -> Option<&A> {
         self.right_to_left.get(b).map(Deref::deref)
+    }
+
+    pub fn remove(&mut self, a: &A) -> bool {
+        self.left_to_right
+            .remove(a)
+            .and_then(|right| self.right_to_left.remove(&*right))
+            .is_some()
+    }
+
+    pub fn remove_reverse(&mut self, b: &B) -> bool {
+        self.right_to_left
+            .remove(b)
+            .and_then(|left| self.left_to_right.remove(&*left))
+            .is_some()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn insertion_and_retrieval() {
+        let mut map = BiMap::new();
+        map.insert("hi", 2);
+        assert_eq!(map.get(&"hi"), Some(&2));
+        assert_eq!(map.get_reverse(&2), Some(&"hi"));
+    }
+
+    #[test]
+    fn insertion_and_removal() {
+        let mut map = BiMap::new();
+
+        map.insert("hi", 2);
+        assert_eq!(map.get(&"hi"), Some(&2));
+        assert_eq!(map.remove(&"hi"), true);
+        assert_eq!(map.get(&"hi"), None);
+
+        map.insert("bye", 3);
+        assert_eq!(map.get_reverse(&3), Some(&"bye"));
+        assert_eq!(map.remove_reverse(&3), true);
+        assert_eq!(map.get_reverse(&3), None);
     }
 }

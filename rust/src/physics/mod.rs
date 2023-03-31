@@ -1,10 +1,11 @@
+use std::collections::HashMap;
+
 use crate::config::PhysicsConfig;
 use crate::perigee_gltf::extras::{GltfBodyType, GltfExtras, GltfOptimizedShape};
 use crate::perigee_gltf::util::access_gltf_bytes;
 use crate::physics::collision_event_mgmt::ContactEventManager;
 use crate::physics::handle_map::NamedHandleMap;
 use crate::traits::FromConfig;
-use crossbeam::channel::TryRecvError;
 use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemantic};
 use log::warn;
 use rapier3d::{
@@ -56,6 +57,14 @@ pub enum PhysicsWorldInitError {
     CouldntAccessBytes,
 }
 
+pub trait PhysicsEventListener {
+    fn on_collision_start(&mut self, _other: &ColliderHandle) {}
+    fn on_collision_end(&mut self, _other: &ColliderHandle) {}
+    fn on_intersection_start(&mut self, _other: &ColliderHandle) {}
+    fn on_intersection_end(&mut self, _other: &ColliderHandle) {}
+    fn on_contact_force_event(&mut self, _other: &ColliderHandle, _details: ContactForceEvent) {}
+}
+
 /// The physics management structure. This is a
 /// thin wrapper around [the Rapier physics engine](https://rapier.rs)
 /// with additional utilities.
@@ -72,12 +81,14 @@ pub struct PhysicsWorld {
     pub multibody_joint_set: MultibodyJointSet,
     pub ccd_solver: CCDSolver,
     pub query_pipeline: QueryPipeline,
+    pub named_rigid_bodies: NamedHandleMap<RigidBodyHandle>,
+    pub named_sensors: NamedHandleMap<ColliderHandle>,
+    #[serde(skip)]
+    collider_event_handlers: HashMap<ColliderHandle, Vec<Box<dyn PhysicsEventListener>>>,
     #[serde(skip)]
     pub pipeline: PhysicsPipeline,
     #[serde(skip)]
-    pub contact_event_manager: ContactEventManager,
-    pub rb_handle_map: NamedHandleMap<RigidBodyHandle>,
-    pub col_handle_map: NamedHandleMap<ColliderHandle>,
+    contact_event_manager: ContactEventManager,
 }
 
 impl FromConfig for PhysicsWorld {
@@ -99,8 +110,9 @@ impl FromConfig for PhysicsWorld {
             contact_event_manager: ContactEventManager::with_capacity(
                 config.event_queue_capacity(),
             ),
-            rb_handle_map: NamedHandleMap::default(),
-            col_handle_map: NamedHandleMap::default(),
+            named_rigid_bodies: NamedHandleMap::default(),
+            named_sensors: NamedHandleMap::default(),
+            collider_event_handlers: HashMap::default(),
         }
     }
 
@@ -334,14 +346,13 @@ impl PhysicsWorld {
                 }
 
                 let rb_handle = self.rigid_body_set.insert(rigid_body_builder.build());
-                let col_handle = self.collider_set.insert_with_parent(
+                let _col_handle = self.collider_set.insert_with_parent(
                     collider_builder.build(),
                     rb_handle,
                     &mut self.rigid_body_set,
                 );
                 if !node_extras.sim_settings.physics.is_anonymous {
-                    self.rb_handle_map.insert(mesh_name.clone(), rb_handle);
-                    self.col_handle_map.insert(mesh_name, col_handle);
+                    self.named_rigid_bodies.insert(mesh_name.clone(), rb_handle);
                 }
             } else {
                 // Create a sensor
@@ -373,28 +384,30 @@ impl PhysicsWorld {
                     .sensor(true);
 
                 let sensor_handle = self.collider_set.insert(collider_builder.build());
-                self.col_handle_map.insert(sensor_name, sensor_handle);
+                self.named_sensors.insert(sensor_name, sensor_handle);
             }
         }
         return Ok(());
     }
 
-    pub fn rigid_body_handle_with_name(&self, name: &str) -> Option<&RigidBodyHandle> {
-        let name = &name.to_owned();
-        self.rb_handle_map.handle_with_name(name)
+    pub fn listen_to_collider<L: PhysicsEventListener + 'static>(
+        &mut self,
+        handle: ColliderHandle,
+        listener: L,
+    ) {
+        let wrapped_listener = Box::new(listener);
+        if let Some(handlers) = self.collider_event_handlers.get_mut(&handle) {
+            handlers.push(wrapped_listener);
+        } else {
+            self.collider_event_handlers
+                .insert(handle, vec![wrapped_listener]);
+        }
     }
 
-    pub fn collider_handle_with_name(&self, name: &str) -> Option<&ColliderHandle> {
-        let name = &name.to_owned();
-        self.col_handle_map.handle_with_name(name)
-    }
-
-    pub fn name_of_rigid_body_handle(&self, handle: &RigidBodyHandle) -> Option<&String> {
-        self.rb_handle_map.name_of_handle(handle)
-    }
-
-    pub fn name_of_collider_handle(&self, handle: &ColliderHandle) -> Option<&String> {
-        self.col_handle_map.name_of_handle(handle)
+    pub fn rekey_listeners(&mut self, old_handle: ColliderHandle, new_handle: ColliderHandle) {
+        if let Some(listeners) = self.collider_event_handlers.remove(&old_handle) {
+            self.collider_event_handlers.insert(new_handle, listeners);
+        }
     }
 
     /// Step the physics simulation by the provided number of seconds.
@@ -416,10 +429,89 @@ impl PhysicsWorld {
             &(),
             self.contact_event_manager.event_collector(),
         );
+
+        while let Ok(collision_event) = self.contact_event_manager.get_collider_event() {
+            match collision_event {
+                CollisionEvent::Started(collider_a, collider_b, collision_type) => {
+                    if collision_type != CollisionEventFlags::SENSOR {
+                        if let Some(handlers) = self.collider_event_handlers.get_mut(&collider_a) {
+                            for handler in handlers {
+                                handler.on_collision_start(&collider_b);
+                            }
+                        };
+                        if let Some(handlers) = self.collider_event_handlers.get_mut(&collider_b) {
+                            for handler in handlers {
+                                handler.on_collision_start(&collider_a);
+                            }
+                        }
+                    } else {
+                        if let Some(handlers) = self.collider_event_handlers.get_mut(&collider_a) {
+                            for handler in handlers {
+                                handler.on_intersection_start(&collider_b);
+                            }
+                        };
+                        if let Some(handlers) = self.collider_event_handlers.get_mut(&collider_b) {
+                            for handler in handlers {
+                                handler.on_intersection_start(&collider_a);
+                            }
+                        }
+                    }
+                }
+                CollisionEvent::Stopped(collider_a, collider_b, collision_type) => {
+                    if collision_type != CollisionEventFlags::SENSOR {
+                        if let Some(handlers) = self.collider_event_handlers.get_mut(&collider_a) {
+                            for handler in handlers {
+                                handler.on_collision_end(&collider_b);
+                            }
+                        };
+                        if let Some(handlers) = self.collider_event_handlers.get_mut(&collider_b) {
+                            for handler in handlers {
+                                handler.on_collision_end(&collider_a);
+                            }
+                        }
+                    } else {
+                        if let Some(handlers) = self.collider_event_handlers.get_mut(&collider_a) {
+                            for handler in handlers {
+                                handler.on_intersection_end(&collider_b);
+                            }
+                        };
+                        if let Some(handlers) = self.collider_event_handlers.get_mut(&collider_b) {
+                            for handler in handlers {
+                                handler.on_intersection_end(&collider_a);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        while let Ok(contact_force_event) = self.contact_event_manager.get_contact_force_event() {
+            if let Some(handlers) = self
+                .collider_event_handlers
+                .get_mut(&contact_force_event.collider1)
+            {
+                for handler in handlers {
+                    handler.on_contact_force_event(
+                        &contact_force_event.collider2,
+                        contact_force_event,
+                    );
+                }
+            };
+            if let Some(handlers) = self
+                .collider_event_handlers
+                .get_mut(&contact_force_event.collider2)
+            {
+                for handler in handlers {
+                    handler.on_contact_force_event(
+                        &contact_force_event.collider1,
+                        contact_force_event,
+                    );
+                }
+            }
+        }
     }
 
     /// Recover the handle from a RigidBody using its `user_data` field.
-    pub fn get_body_handle(body: &RigidBody) -> RigidBodyHandle {
+    pub unsafe fn get_body_handle(body: &RigidBody) -> RigidBodyHandle {
         let lower_32_bits_mask = 0xffffffff_u128;
         let body_user_data = body.user_data;
         let handle_generation_u128 = body_user_data & lower_32_bits_mask;
@@ -431,27 +523,8 @@ impl PhysicsWorld {
         RigidBodyHandle::from_raw_parts(handle_index, handle_generation)
     }
 
-    pub fn get_collider_event(&self) -> Result<CollisionEvent, TryRecvError> {
-        self.contact_event_manager.get_collider_event()
-    }
-
-    pub fn get_contact_force_event(&self) -> Result<ContactForceEvent, TryRecvError> {
-        self.contact_event_manager.get_contact_force_event()
-    }
-
-    pub fn eviscerate_event_channels(&self) -> Result<(), TryRecvError> {
-        self.contact_event_manager.eviscerate_channels()
-    }
-
-    pub fn intersections_with_collider(
-        &self,
-        collider: ColliderHandle,
-    ) -> impl Iterator<Item = (ColliderHandle, ColliderHandle, bool)> + '_ {
-        self.narrow_phase.intersections_with(collider)
-    }
-
     /// Store the parts of the RigidBody's handle in its `user_data`  field.
-    pub fn store_handle_in_body(handle: &RigidBodyHandle, body: &mut RigidBody) {
+    pub unsafe fn store_handle_in_body(handle: &RigidBodyHandle, body: &mut RigidBody) {
         let handle_parts = handle.into_raw_parts();
         let handle_index = handle_parts.0;
         let handle_generation = handle_parts.1;
@@ -472,10 +545,12 @@ mod tests {
             // Get the body again since it was moved into the simulation
             let body = world.rigid_body_set.get_mut(handle).unwrap();
 
-            PhysicsWorld::store_handle_in_body(&handle, body);
+            unsafe {
+                PhysicsWorld::store_handle_in_body(&handle, body);
 
-            let recovered_handle = PhysicsWorld::get_body_handle(body);
-            assert_eq!(handle, recovered_handle);
+                let recovered_handle = PhysicsWorld::get_body_handle(body);
+                assert_eq!(handle, recovered_handle);
+            }
         }
     }
 }
