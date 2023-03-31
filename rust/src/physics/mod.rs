@@ -3,9 +3,10 @@ use std::collections::HashMap;
 use crate::config::PhysicsConfig;
 use crate::perigee_gltf::extras::{GltfBodyType, GltfExtras, GltfOptimizedShape};
 use crate::perigee_gltf::util::access_gltf_bytes;
-use crate::physics::collision_event_mgmt::ContactEventManager;
+use crate::physics::contact_event_mgmt::ContactEventManager;
 use crate::physics::handle_map::NamedHandleMap;
-use crate::traits::FromConfig;
+use crate::traits::{physics::ColliderEventListener, FromConfig};
+pub use collider_event_listener::*;
 use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemantic};
 use log::warn;
 use rapier3d::{
@@ -15,7 +16,8 @@ use rapier3d::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-mod collision_event_mgmt;
+mod collider_event_listener;
+mod contact_event_mgmt;
 mod handle_map;
 
 #[derive(Error, Debug)]
@@ -57,14 +59,6 @@ pub enum PhysicsWorldInitError {
     CouldntAccessBytes,
 }
 
-pub trait PhysicsEventListener {
-    fn on_collision_start(&mut self, _other: &ColliderHandle) {}
-    fn on_collision_end(&mut self, _other: &ColliderHandle) {}
-    fn on_intersection_start(&mut self, _other: &ColliderHandle) {}
-    fn on_intersection_end(&mut self, _other: &ColliderHandle) {}
-    fn on_contact_force_event(&mut self, _other: &ColliderHandle, _details: ContactForceEvent) {}
-}
-
 /// The physics management structure. This is a
 /// thin wrapper around [the Rapier physics engine](https://rapier.rs)
 /// with additional utilities.
@@ -84,7 +78,7 @@ pub struct PhysicsWorld {
     pub named_rigid_bodies: NamedHandleMap<RigidBodyHandle>,
     pub named_sensors: NamedHandleMap<ColliderHandle>,
     #[serde(skip)]
-    collider_event_handlers: HashMap<ColliderHandle, Vec<Box<dyn PhysicsEventListener>>>,
+    collider_event_handlers: HashMap<ColliderHandle, Vec<Box<dyn ColliderEventListener>>>,
     #[serde(skip)]
     pub pipeline: PhysicsPipeline,
     #[serde(skip)]
@@ -390,7 +384,7 @@ impl PhysicsWorld {
         return Ok(());
     }
 
-    pub fn listen_to_collider<L: PhysicsEventListener + 'static>(
+    pub fn listen_to_collider<L: ColliderEventListener + 'static>(
         &mut self,
         handle: ColliderHandle,
         listener: L,

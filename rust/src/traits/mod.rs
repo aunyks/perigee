@@ -1,3 +1,7 @@
+pub mod physics;
+
+pub use physics::*;
+
 pub trait TryFromToml {
     fn try_from_toml(toml_str: &str) -> Result<Self, String>
     where

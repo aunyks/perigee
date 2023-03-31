@@ -5,7 +5,7 @@ use crate::config::PhysicsConfig;
 
 /// A structure for managing contact events (collision and contact force events)
 /// that took place during physics simulation.
-pub struct ContactEventManager {
+pub(crate) struct ContactEventManager {
     channel_event_collector: ChannelEventCollector,
     collision_event_receiver: Receiver<CollisionEvent>,
     contact_force_event_receiver: Receiver<ContactForceEvent>,
