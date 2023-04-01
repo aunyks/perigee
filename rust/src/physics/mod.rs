@@ -4,7 +4,7 @@ use crate::config::PhysicsConfig;
 use crate::perigee_gltf::extras::{GltfBodyType, GltfExtras, GltfOptimizedShape};
 use crate::perigee_gltf::util::access_gltf_bytes;
 use crate::physics::contact_event_mgmt::ContactEventManager;
-use crate::physics::handle_map::NamedHandleMap;
+use crate::physics::handle_map::{NamedColliderHandleMap, NamedRigidBodyHandleMap};
 use crate::traits::{physics::ColliderEventListener, FromConfig};
 pub use collider_event_listener::*;
 use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemantic};
@@ -75,8 +75,8 @@ pub struct PhysicsWorld {
     pub multibody_joint_set: MultibodyJointSet,
     pub ccd_solver: CCDSolver,
     pub query_pipeline: QueryPipeline,
-    pub named_rigid_bodies: NamedHandleMap<RigidBodyHandle>,
-    pub named_sensors: NamedHandleMap<ColliderHandle>,
+    pub named_rigid_bodies: NamedRigidBodyHandleMap,
+    pub named_sensors: NamedColliderHandleMap,
     #[serde(skip)]
     collider_event_handlers: HashMap<ColliderHandle, Vec<Box<dyn ColliderEventListener>>>,
     #[serde(skip)]
@@ -104,8 +104,8 @@ impl FromConfig for PhysicsWorld {
             contact_event_manager: ContactEventManager::with_capacity(
                 config.event_queue_capacity(),
             ),
-            named_rigid_bodies: NamedHandleMap::default(),
-            named_sensors: NamedHandleMap::default(),
+            named_rigid_bodies: NamedRigidBodyHandleMap::default(),
+            named_sensors: NamedColliderHandleMap::default(),
             collider_event_handlers: HashMap::default(),
         }
     }

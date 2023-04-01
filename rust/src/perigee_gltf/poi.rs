@@ -3,6 +3,7 @@ use gltf::Gltf;
 use rapier3d::na::{Isometry, Quaternion, UnitQuaternion, Vector3};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::ops::Index;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -62,5 +63,13 @@ impl PointsOfInterest {
 
     pub fn point_with_name(&self, name: &str) -> Option<&Isometry<f32, UnitQuaternion<f32>, 3>> {
         self.map.get(name)
+    }
+}
+
+impl Index<&str> for PointsOfInterest {
+    type Output = Isometry<f32, UnitQuaternion<f32>, 3>;
+    fn index(&self, index: &str) -> &Self::Output {
+        self.point_with_name(index)
+            .expect("Unrecognized PoI name given!")
     }
 }

@@ -1,6 +1,7 @@
 use crate::data_structures::BiMap;
+use rapier3d::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::hash::Hash;
+use std::{hash::Hash, ops::Index};
 
 /// A [BiMap](crate::data_structures::BiMap)
 /// for naming [Rapier](https://rapier.rs) RigidBodyHandles
@@ -60,5 +61,36 @@ where
         self.remove_by_handle(old_handle);
         self.insert(name, new_handle);
         return true;
+    }
+}
+
+pub type NamedRigidBodyHandleMap = NamedHandleMap<RigidBodyHandle>;
+
+impl Index<&RigidBodyHandle> for NamedRigidBodyHandleMap {
+    type Output = String;
+    fn index(&self, index: &RigidBodyHandle) -> &Self::Output {
+        self.name_of_handle(index)
+            .expect("Unrecognized rigid body handle given!")
+    }
+}
+
+pub type NamedColliderHandleMap = NamedHandleMap<ColliderHandle>;
+
+impl Index<&ColliderHandle> for NamedColliderHandleMap {
+    type Output = String;
+    fn index(&self, index: &ColliderHandle) -> &Self::Output {
+        self.name_of_handle(&index)
+            .expect("Unrecognized collider handle given!")
+    }
+}
+
+impl<T> Index<&str> for NamedHandleMap<T>
+where
+    T: Eq + Hash + Copy,
+{
+    type Output = T;
+    fn index(&self, index: &str) -> &Self::Output {
+        self.handle_with_name(index)
+            .expect("Unrecognized handle name given!")
     }
 }
