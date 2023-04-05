@@ -13,7 +13,6 @@ use syn::{
     Expr,
     parse_macro_input,
     punctuated::Punctuated,
-    // spanned::Spanned,
     AttrStyle, ImplItem, Pat, Type,
     parse_quote, PathArguments
 };
@@ -49,40 +48,27 @@ pub fn ffi(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut types_to_slot: Vec<Type> = Vec::new();
 
-    'impl_item_loop: for impl_item in ffi_impl.item.items.iter_mut() {
+    for impl_item in ffi_impl.item.items.iter_mut() {
         if let ImplItem::Method(ref mut fn_details) = impl_item {
             // Only use process public functions
             if !matches!(fn_details.vis, Visibility::Public(_)) {
                 continue;
             }
 
-            let (mut ffi_only, mut slot_return) = (false, false);
+            let mut slot_return = false;
             for attr in &mut fn_details.attrs {
                 if matches!(attr.style, AttrStyle::Outer) {
                     let attribute_name = attribute_name(&attr);
-                    if attribute_name == "ffi_never" {
-                        let original_fn_details = fn_details.clone();
-                        let compile_locked_original_fn = quote! {
-                            #original_fn_details
-                        };
-                        expanded_impl_internals
-                            .extend::<TokenStream>(compile_locked_original_fn.into());
-                        // skip generating ffi code for this function
-                        continue 'impl_item_loop;
-                    } else if attribute_name == "ffi_only" {
-                        ffi_only = true;
-                    } else if attribute_name == "slot_return" {
-                        slot_return = true
-                    } else {}
+                    if attribute_name == "slot_return" {
+                        slot_return = true;
+                    }
                 }
             }
 
-            if !ffi_only {
-                // include the original function if we don't *only* want ffi code
-                let original_fn_details = fn_details.clone();
-                expanded_impl_internals
-                    .extend::<TokenStream>(original_fn_details.into_token_stream().into());
-            }
+            // include the original function if we don't *only* want ffi code
+            let original_fn_details = fn_details.clone();
+            expanded_impl_internals
+                .extend::<TokenStream>(original_fn_details.into_token_stream().into());
 
             let mut ffi_fn_statements: Vec<Stmt> = Vec::new();
             let mut invocation_args = Vec::new();
@@ -229,30 +215,14 @@ pub fn ffi(_args: TokenStream, input: TokenStream) -> TokenStream {
                 } else {
                     // leave the return alone if we don't slot it
                     output_fn_return_type = Some(fn_details.sig.output.clone());
-                    if ffi_only {
-                        let mut original_statements = fn_details.block.stmts.clone();
-                        replace_self_with_sim(&mut original_statements);
-                        ffi_fn_statements.append(&mut original_statements);
-                    } else {
-                        ffi_fn_statements.push(
-                            parse_quote!(
-                                return sim.#fn_name(#invocation_args);
-                            )
-                        );
-                    }
-                }
-            } else {
-                if ffi_only {
                     let mut original_statements = fn_details.block.stmts.clone();
                     replace_self_with_sim(&mut original_statements);
                     ffi_fn_statements.append(&mut original_statements);
-                } else {
-                    ffi_fn_statements.push(
-                        parse_quote!(
-                            let _ = sim.#fn_name(#invocation_args);
-                        )
-                    );
                 }
+            } else {
+                let mut original_statements = fn_details.block.stmts.clone();
+                replace_self_with_sim(&mut original_statements);
+                ffi_fn_statements.append(&mut original_statements);
             }
 
             // Create block and add to ffi function
@@ -261,7 +231,6 @@ pub fn ffi(_args: TokenStream, input: TokenStream) -> TokenStream {
                 stmts: ffi_fn_statements,
             };
             let ffi_fn_definition = quote!(
-                #[cfg(feature = "ffi")]
                 #[no_mangle]
                 pub extern "C" fn #fn_name(#updated_fn_args) #output_fn_return_type
                 #fn_body_block
@@ -275,7 +244,7 @@ pub fn ffi(_args: TokenStream, input: TokenStream) -> TokenStream {
     let type_slotting_code = generate_type_slotting_functions(&types_to_slot);
     ffi_code.extend(type_slotting_code);
 
-    let expanded_impl_internals: TokenStream2 = expanded_impl_internals.into();
+    let mut expanded_impl_internals: TokenStream2 = expanded_impl_internals.into();
     let ffi_code: TokenStream2 = ffi_code.into();
     quote! {
         impl<'a> #bare_sim_type <'a> {
