@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Perigee Realtime Engine Addon",
     "category": "Generic",
-    "version": (0, 2, 0),
+    "version": (0, 2, 1),
     "blender": (2, 80, 0),
     "location": "3D Viewport Side Panel & File > Export > glTF 2.0",
     "description": "An addon for specifying simulation scenes for the Perigee realtime engine.",
@@ -106,7 +106,11 @@ class glTF2ExportUserExtension:
                 # Overwrite
                 gltf2_object.extras["simSettings"]["physics"]["bodyType"] = "SENSOR"
                 # Newly create
-                gltf2_object.extras["simSettings"]["physics"]["baseScale"] = [blender_object.empty_display_size, blender_object.empty_display_size, blender_object.empty_display_size]
+                gltf2_object.extras["simSettings"]["physics"]["baseScale"] = [
+                    2 * blender_object.empty_display_size,
+                    2 * blender_object.empty_display_size,
+                    2 * blender_object.empty_display_size
+                ]
 
                 optimized_shape = "CUBOID"
                 if blender_object.empty_display_type == "SPHERE":
