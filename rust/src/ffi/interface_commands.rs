@@ -11,6 +11,7 @@ extern "C" {
         audio_name_ptr: *const u8,
         audio_name_len: usize,
         playback_rate: f32,
+        volume: f32,
     );
     fn loop_audio_hook(
         scene_obj_name_ptr: *const u8,
@@ -18,6 +19,7 @@ extern "C" {
         audio_name_ptr: *const u8,
         audio_name_len: usize,
         playback_rate: f32,
+        volume: f32,
     );
     fn stop_audio_hook(
         scene_obj_name_ptr: *const u8,
@@ -51,7 +53,7 @@ extern "C" {
     );
 }
 #[cfg(feature = "ffi")]
-pub fn play_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32) {
+pub fn play_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32, volume: f32) {
     unsafe {
         play_audio_hook(
             scene_object_name.as_ptr(),
@@ -59,21 +61,22 @@ pub fn play_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32)
             audio_name.as_ptr(),
             audio_name.len(),
             playback_rate,
+            volume,
         );
     }
 }
 
 /// Play the named audio track once from the perspective of the active camera.
 #[cfg(not(feature = "ffi"))]
-pub fn play_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32) {
+pub fn play_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32, volume: f32) {
     debug!(
-        "Play Audio: (Scene Object: {}, Audio Name: {}, Playback Rate: {})",
-        scene_object_name, audio_name, playback_rate
+        "Play Audio: (Scene Object: {}, Audio Name: {}, Playback Rate: {}, Volume: {})",
+        scene_object_name, audio_name, playback_rate, volume
     );
 }
 
 #[cfg(feature = "ffi")]
-pub fn loop_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32) {
+pub fn loop_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32, volume: f32) {
     unsafe {
         loop_audio_hook(
             scene_object_name.as_ptr(),
@@ -81,6 +84,7 @@ pub fn loop_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32)
             audio_name.as_ptr(),
             audio_name.len(),
             playback_rate,
+            volume,
         );
     }
 }
@@ -88,10 +92,10 @@ pub fn loop_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32)
 /// Repeatedly play the named audio track from the perspective of the active camera until
 /// told to stop.
 #[cfg(not(feature = "ffi"))]
-pub fn loop_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32) {
+pub fn loop_audio(scene_object_name: &str, audio_name: &str, playback_rate: f32, volume: f32) {
     debug!(
-        "Loop Audio: (Scene Object: {}, Audio Name: {}, Playback Rate: {})",
-        scene_object_name, audio_name, playback_rate
+        "Loop Audio: (Scene Object: {}, Audio Name: {}, Playback Rate: {}, Volume: {})",
+        scene_object_name, audio_name, playback_rate, volume
     );
 }
 
