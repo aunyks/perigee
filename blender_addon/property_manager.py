@@ -11,8 +11,9 @@ class ObjectSimulationSettings(bpy.types.PropertyGroup):
     ])
     optimized_shape: bpy.props.EnumProperty(name="Optimized Shape", default="NONE", items=[
         ("NONE", "None", "Have the simulation build a triangle mesh of this object. Note: This uses more memory than optimized shapes.", "", 1),
-        ("CUBOID", "Cuboid", "Have the simulation use its intrinsic cuboid representation for this object.", "", 2),
-        ("SPHERE", "Sphere", "Have the simulation use its intrinsic sphere representation for this object.", "", 3)
+        ("CONVEX_MESH", "Convex Mesh", "Have the simulation build a convex mesh of this object.", "", 2),
+        ("CUBOID", "Cuboid", "Have the simulation use its intrinsic cuboid representation for this object.", "", 3),
+        ("SPHERE", "Sphere", "Have the simulation use its intrinsic sphere representation for this object.", "", 4)
     ])
     is_point_of_interest: bpy.props.BoolProperty(name="Mark as Point of Interest", description="Store this object's location and rotation in the Perigee glTF using the object's name for use in-engine.")
     is_anonymous: bpy.props.BoolProperty(name="Make Anonymous", description="Don't make this object referenceable by name in the Perigee engine. This saves memory.", default=True)

@@ -57,6 +57,8 @@ pub enum PhysicsWorldInitError {
     NoVerticesFound,
     #[error("could not get accessor bytes")]
     CouldntAccessBytes,
+    #[error("mesh defined as convex is not convex")]
+    MeshNotConvex,
 }
 
 /// The physics management structure. This is a
@@ -205,6 +207,135 @@ impl PhysicsWorld {
                     GltfOptimizedShape::Sphere => {
                         let ball_dimensions = base_scale.component_mul(&Vector3::from(scale));
                         SharedShape::ball(ball_dimensions.x / 2.0)
+                    }
+                    GltfOptimizedShape::ConvexMesh => {
+                        let mut maybe_indices: Option<Vec<[u32; 3]>> = None;
+                        let mut maybe_vertices: Option<Vec<Point3<f32>>> = None;
+                        for primitive in mesh.primitives() {
+                            let indices_accesor = match primitive.indices() {
+                                Some(accessor) => accessor,
+                                None => {
+                                    return Err(
+                                        PhysicsWorldInitError::NoPrimitiveAccessorForTrimesh,
+                                    )
+                                }
+                            };
+
+                            let indices_bytes = if let Ok(indices_bytes) =
+                                access_gltf_bytes(gltf_bytes, &indices_accesor)
+                            {
+                                indices_bytes
+                            } else {
+                                return Err(PhysicsWorldInitError::CouldntAccessBytes);
+                            };
+                            let mut indices: Vec<[u32; 3]> =
+                                Vec::with_capacity(indices_accesor.count() / 3);
+
+                            match indices_accesor.data_type() {
+                                GltfDataType::U16 => {
+                                    let flattened_indices: Vec<u16> = indices_bytes
+                                            .chunks_exact(2)
+                                            .map(|uint_bytes| {
+                                                let uint_byte_array: [u8; 2] = uint_bytes[0..2]
+                                                .try_into()
+                                                .expect(
+                                                "Could not convert u16 byte slice into u16 byte array",
+                                            );
+                                                u16::from_le_bytes(uint_byte_array)
+                                            })
+                                            .collect();
+                                    let chunked_indices: Vec<&[u16]> =
+                                        flattened_indices.chunks(3).collect();
+                                    for face_u16 in chunked_indices {
+                                        indices.push([
+                                            u32::from(face_u16[0]),
+                                            u32::from(face_u16[1]),
+                                            u32::from(face_u16[2]),
+                                        ]);
+                                    }
+                                    maybe_indices = Some(indices);
+                                }
+                                GltfDataType::U32 => {
+                                    let flattened_indices: Vec<u32> = indices_bytes
+                                            .chunks_exact(4)
+                                            .map(|uint_bytes| {
+                                                let uint_byte_array: [u8; 4] = uint_bytes[0..4]
+                                                .try_into()
+                                                .expect(
+                                                "Could not convert u32 byte slice into u32 byte array",
+                                            );
+                                                u32::from_le_bytes(uint_byte_array)
+                                            })
+                                            .collect();
+                                    let chunked_indices: Vec<&[u32]> =
+                                        flattened_indices.chunks(3).collect();
+                                    for face_u32 in chunked_indices {
+                                        indices.push([face_u32[0], face_u32[1], face_u32[2]]);
+                                    }
+                                    maybe_indices = Some(indices);
+                                }
+                                _ => {
+                                    return Err(PhysicsWorldInitError::InvalidIndicesDataType);
+                                }
+                            };
+                            match primitive.get(&PrimitiveSemantic::Positions) {
+                                None => {
+                                    return Err(PhysicsWorldInitError::NoVertexPositionsAccessor);
+                                }
+                                Some(vertex_positions_accessor) => {
+                                    let positions_bytes = if let Ok(positions_bytes) =
+                                        access_gltf_bytes(gltf_bytes, &vertex_positions_accessor)
+                                    {
+                                        positions_bytes
+                                    } else {
+                                        return Err(PhysicsWorldInitError::CouldntAccessBytes);
+                                    };
+
+                                    let mut floats: Vec<f32> =
+                                        Vec::with_capacity(positions_bytes.len() / 4);
+                                    for float_bytes in positions_bytes.chunks_exact(4) {
+                                        let float_byte_array: [u8; 4] = float_bytes[0..4]
+                                                .try_into()
+                                                .expect(
+                                                "Could not convert float byte slice into float byte array",
+                                            );
+                                        floats.push(f32::from_le_bytes(float_byte_array));
+                                    }
+                                    let mut vertices: Vec<Point3<f32>> =
+                                        Vec::with_capacity(floats.len() / 3);
+                                    for float_chunk in floats.chunks(3) {
+                                        vertices.push(Point3::new(
+                                            float_chunk[0],
+                                            float_chunk[1],
+                                            float_chunk[2],
+                                        ));
+                                    }
+                                    maybe_vertices = Some(vertices);
+                                }
+                            };
+                        }
+                        if maybe_indices.is_none() {
+                            return Err(PhysicsWorldInitError::NoIndicesFound);
+                        }
+                        if maybe_vertices.is_none() {
+                            return Err(PhysicsWorldInitError::NoVerticesFound);
+                        }
+                        let scaled_trimesh: TriMesh = TriMesh::new(
+                            maybe_vertices.expect(
+                                "Trimesh vertices were None despite asserting they weren't!",
+                            ),
+                            maybe_indices.expect(
+                                "Trimesh indices were None despite asserting they weren't!",
+                            ),
+                        )
+                        .scaled(&Vector3::new(scale[0], scale[1], scale[2]));
+                        if let Some(shape) =
+                            SharedShape::convex_hull(scaled_trimesh.vertices().to_vec().as_ref())
+                        {
+                            shape
+                        } else {
+                            return Err(PhysicsWorldInitError::MeshNotConvex);
+                        }
                     }
                     GltfOptimizedShape::None => {
                         let mut maybe_indices: Option<Vec<[u32; 3]>> = None;

@@ -17,6 +17,8 @@ pub enum GltfBodyType {
 pub enum GltfOptimizedShape {
     #[serde(rename = "NONE")]
     None,
+    #[serde(rename = "CONVEX_MESH")]
+    ConvexMesh,
     #[serde(rename = "CUBOID")]
     Cuboid,
     #[serde(rename = "SPHERE")]
