@@ -13,6 +13,8 @@ def add_poi_arrow(operator, ctx):
     for obj in data_to.objects:
         if obj is not None:
             ctx.view_layer.active_layer_collection.collection.objects.link(obj)
+            obj.select_set(True)
+            ctx.view_layer.objects.active = obj
 
 class OBJECT_OT_add_poi_mesh(Operator, AddObjectHelper):
     """Create a new Mesh Object"""

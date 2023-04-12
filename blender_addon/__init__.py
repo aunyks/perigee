@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Perigee Realtime Engine Addon",
     "category": "Generic",
-    "version": (0, 2, 2),
+    "version": (0, 2, 3),
     "blender": (2, 80, 0),
     "location": "3D Viewport Side Panel & File > Export > glTF 2.0",
     "description": "An addon for specifying simulation scenes for the Perigee realtime engine.",
