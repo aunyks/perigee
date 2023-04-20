@@ -66,29 +66,3 @@ where
 {
     (num - start_min) * (end_max - end_min) / (start_max - start_min) + end_min
 }
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Transform {
-    pub isometry: Isometry<f32, UnitQuaternion<f32>, 3>,
-    pub scale: Vector3<f32>,
-}
-
-impl Transform {
-    pub fn isometry(&self) -> &Isometry<f32, UnitQuaternion<f32>, 3> {
-        &self.isometry
-    }
-
-    pub fn scale(&self) -> &Vector3<f32> {
-        &self.scale
-    }
-}
-
-impl From<Isometry<f32, UnitQuaternion<f32>, 3>> for Transform {
-    fn from(iso: Isometry<f32, UnitQuaternion<f32>, 3>) -> Self {
-        Self {
-            isometry: iso,
-            scale: Vector3::new(1.0, 1.0, 1.0),
-        }
-    }
-}
