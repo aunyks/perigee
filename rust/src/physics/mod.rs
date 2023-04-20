@@ -12,7 +12,7 @@ use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemant
 use log::debug;
 use log::warn;
 use rapier3d::{
-    na::{Isometry, Point3, Quaternion, Translation3, UnitQuaternion, Vector3},
+    na::{Isometry, Matrix4, Point3, Quaternion, Transform, Translation3, UnitQuaternion, Vector3},
     prelude::*,
 };
 use serde::{Deserialize, Serialize};
