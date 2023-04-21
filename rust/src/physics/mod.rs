@@ -9,10 +9,9 @@ use crate::traits::{physics::ColliderEventListener, FromConfig};
 pub use collider_event_listener::*;
 use gltf::Node;
 use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemantic};
-use log::debug;
 use log::warn;
 use rapier3d::{
-    na::{Isometry, Matrix4, Point3, Quaternion, Transform, Translation3, UnitQuaternion, Vector3},
+    na::{Isometry, Point3, Quaternion, Translation3, UnitQuaternion, Vector3},
     prelude::*,
 };
 use serde::{Deserialize, Serialize};
@@ -138,14 +137,14 @@ impl PhysicsWorld {
         )
     }
 
-    fn visit_node(
+    fn visit_gltf_node(
         &mut self,
         node: &Node,
         parent_isometry: &Isometry<f32, UnitQuaternion<f32>, 3>,
+        parent_scale: &Vector3<f32>,
         gltf_bytes: &Vec<u8>,
         visited_nodes: &mut HashMap<usize, ()>,
     ) -> Result<(), PhysicsWorldInitError> {
-        debug!("{:?}", node.name());
         let node_extra_data = match node.extras().as_ref() {
             Some(extra_data) => extra_data,
             None => return Err(PhysicsWorldInitError::PerigeeExtrasUndetected),
@@ -157,7 +156,9 @@ impl PhysicsWorld {
         };
 
         let body_type = node_extras.sim_settings.physics.body_type;
+
         let (translation, quaternion, scale) = node.transform().decomposed();
+        let scale = Vector3::new(scale[0], scale[1], scale[2]);
         let object_isometry = Isometry::from_parts(
             Translation3::new(translation[0], translation[1], translation[2]),
             UnitQuaternion::from_quaternion(Quaternion::new(
@@ -168,10 +169,16 @@ impl PhysicsWorld {
             )),
         );
         let global_isometry = parent_isometry * object_isometry;
-        debug!("{}", global_isometry);
-        debug!("---------");
+        let global_scale = parent_scale.component_mul(&scale);
+
         for child_node in node.children() {
-            self.visit_node(&child_node, &global_isometry, gltf_bytes, visited_nodes)?;
+            self.visit_gltf_node(
+                &child_node,
+                &global_isometry,
+                &global_scale,
+                gltf_bytes,
+                visited_nodes,
+            )?;
         }
         if !node_extras.sim_settings.physics.enabled || visited_nodes.contains_key(&node.index()) {
             return Ok(());
@@ -198,7 +205,7 @@ impl PhysicsWorld {
             let collider_silhouette = match node_extras.sim_settings.physics.optimized_shape {
                 GltfOptimizedShape::Cuboid => {
                     let cuboid_half_dimensions =
-                        base_scale.component_mul(&Vector3::from(scale)) / 2.0;
+                        base_scale.component_mul(&Vector3::from(global_scale)) / 2.0;
                     SharedShape::cuboid(
                         cuboid_half_dimensions.x,
                         cuboid_half_dimensions.y,
@@ -206,7 +213,7 @@ impl PhysicsWorld {
                     )
                 }
                 GltfOptimizedShape::Sphere => {
-                    let ball_dimensions = base_scale.component_mul(&Vector3::from(scale));
+                    let ball_dimensions = base_scale.component_mul(&Vector3::from(global_scale));
                     SharedShape::ball(ball_dimensions.x / 2.0)
                 }
                 GltfOptimizedShape::ConvexMesh => {
@@ -325,7 +332,7 @@ impl PhysicsWorld {
                         maybe_indices
                             .expect("Trimesh indices were None despite asserting they weren't!"),
                     )
-                    .scaled(&Vector3::new(scale[0], scale[1], scale[2]));
+                    .scaled(&global_scale);
                     if let Some(shape) =
                         SharedShape::convex_hull(scaled_trimesh.vertices().to_vec().as_ref())
                     {
@@ -450,7 +457,7 @@ impl PhysicsWorld {
                         maybe_indices
                             .expect("Trimesh indices were None despite asserting they weren't!"),
                     )
-                    .scaled(&Vector3::new(scale[0], scale[1], scale[2]));
+                    .scaled(&global_scale);
                     SharedShape::trimesh(
                         scaled_trimesh.vertices().to_vec(),
                         scaled_trimesh.indices().to_vec(),
@@ -484,7 +491,7 @@ impl PhysicsWorld {
             let sensor_silhouette = match node_extras.sim_settings.physics.optimized_shape {
                 GltfOptimizedShape::Cuboid => {
                     let cuboid_half_dimensions =
-                        base_scale.component_mul(&Vector3::from(scale)) / 2.0;
+                        base_scale.component_mul(&Vector3::from(global_scale)) / 2.0;
                     SharedShape::cuboid(
                         cuboid_half_dimensions.x,
                         cuboid_half_dimensions.y,
@@ -522,9 +529,16 @@ impl PhysicsWorld {
         };
 
         let mut visited_nodes: HashMap<usize, ()> = HashMap::new();
+        // Only loads the first scene
         if let Some(scene) = gltf.scenes().next() {
             for node in scene.nodes() {
-                self.visit_node(&node, &Isometry::identity(), gltf_bytes, &mut visited_nodes)?;
+                self.visit_gltf_node(
+                    &node,
+                    &Isometry::identity(),
+                    &Vector3::new(1.0, 1.0, 1.0),
+                    gltf_bytes,
+                    &mut visited_nodes,
+                )?;
             }
         }
 
