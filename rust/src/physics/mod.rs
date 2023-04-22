@@ -523,7 +523,11 @@ impl PhysicsWorld {
     /// glTF into the physics world.
     ///
     /// Note: Nodes that are children of others will be ignored.
-    pub fn load_from_gltf(&mut self, gltf: &Gltf) -> Result<(), PhysicsWorldInitError> {
+    pub fn load_from_gltf(
+        &mut self,
+        gltf: &Gltf,
+        parent_transform: Option<Transform3<f32>>,
+    ) -> Result<(), PhysicsWorldInitError> {
         let mut visited_nodes: HashMap<usize, ()> = HashMap::new();
         // Only loads the first scene
         if let Some(scene) = gltf.scenes().next() {
@@ -531,7 +535,7 @@ impl PhysicsWorld {
                 self.visit_gltf_node(
                     &node,
                     gltf.blob.as_ref(),
-                    &Transform3::identity(),
+                    &parent_transform.unwrap_or(Transform3::identity()),
                     &mut visited_nodes,
                 )?;
             }

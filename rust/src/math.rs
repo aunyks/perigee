@@ -86,12 +86,26 @@ where
             scale: Vector3::new(one(), one(), one()),
         }
     }
+
+    pub fn from_parts(isometry: Isometry3<T>, scale: Vector3<T>) -> Self {
+        Self { isometry, scale }
+    }
+
     pub fn scale(&self) -> &Vector3<T> {
         &self.scale
     }
 
     pub fn isometry(&self) -> &Isometry3<T> {
         &self.isometry
+    }
+}
+
+impl<T> From<Isometry3<T>> for Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    fn from(isometry: Isometry3<T>) -> Self {
+        Self::from_parts(isometry, Vector3::new(one(), one(), one()))
     }
 }
 
