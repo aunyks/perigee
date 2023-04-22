@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Perigee Realtime Engine Addon",
     "category": "Generic",
-    "version": (0, 2, 3),
+    "version": (0, 2, 4),
     "blender": (2, 80, 0),
     "location": "3D Viewport Side Panel & File > Export > glTF 2.0",
     "description": "An addon for specifying simulation scenes for the Perigee realtime engine.",
@@ -117,7 +117,7 @@ class glTF2ExportUserExtension:
                     optimized_shape = "SPHERE"
                 gltf2_object.extras["simSettings"]["physics"]["optimizedShape"] = optimized_shape
             elif blender_object.type == "MESH":
-                gltf2_object.extras["simSettings"]["physics"]["baseScale"] = [blender_object.dimensions[0] / blender_object.scale[0], blender_object.dimensions[1] / blender_object.scale[1], blender_object.dimensions[2] / blender_object.scale[2]]
+                gltf2_object.extras["simSettings"]["physics"]["baseScale"] = [blender_object.dimensions[0] / blender_object.matrix_world.to_scale()[0], blender_object.dimensions[1] / blender_object.matrix_world.to_scale()[1], blender_object.dimensions[2] / blender_object.matrix_world.to_scale()[2]]
                 if gltf2_object.extras["simSettings"]["physics"]["bodyType"] == "DYNAMIC":
                     gltf2_object.extras["simSettings"]["physics"]["isAnonymous"] = False
             else:

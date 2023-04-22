@@ -33,7 +33,7 @@ pub mod prelude {
     pub use log::*;
     pub use macros::*;
     pub use rapier3d::{
-        na::{Isometry, Quaternion, Unit, UnitQuaternion, UnitVector3, Vector3},
+        na::{Isometry3, Quaternion, Unit, UnitQuaternion, UnitVector3, Vector3},
         prelude::*,
     };
 }

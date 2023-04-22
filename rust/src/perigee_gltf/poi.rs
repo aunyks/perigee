@@ -1,6 +1,6 @@
 use crate::perigee_gltf::extras::GltfExtras;
 use gltf::{Gltf, Node};
-use rapier3d::na::{Isometry, Quaternion, UnitQuaternion, Vector3};
+use rapier3d::na::{Isometry3, Quaternion, UnitQuaternion, Vector3};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Index;
@@ -18,16 +18,20 @@ pub enum PointsOfInterestInitError {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct PointsOfInterest {
-    map: HashMap<String, Isometry<f32, UnitQuaternion<f32>, 3>>,
+    map: HashMap<String, Isometry3<f32>>,
 }
 
 impl PointsOfInterest {
     fn visit_gltf_node(
         &mut self,
         node: &Node,
-        parent_isometry: &Isometry<f32, UnitQuaternion<f32>, 3>,
+        parent_isometry: &Isometry3<f32>,
         visited_nodes: &mut HashMap<usize, ()>,
     ) -> Result<(), PointsOfInterestInitError> {
+        if visited_nodes.contains_key(&node.index()) {
+            return Ok(());
+        }
+
         let node_extra_data = match node.extras().as_ref() {
             Some(extra_data) => extra_data,
             None => return Err(PointsOfInterestInitError::PerigeeExtrasUndetected),
@@ -39,9 +43,8 @@ impl PointsOfInterest {
         };
 
         let (translation, quaternion, _) = node.transform().decomposed();
-
         let global_isometry = parent_isometry
-            * Isometry::from_parts(
+            * Isometry3::from_parts(
                 Vector3::new(translation[0], translation[1], translation[2]).into(),
                 UnitQuaternion::from_quaternion(Quaternion::new(
                     quaternion[3],
@@ -73,20 +76,20 @@ impl PointsOfInterest {
         // Only loads the first scene
         if let Some(scene) = gltf.scenes().next() {
             for node in scene.nodes() {
-                self.visit_gltf_node(&node, &Isometry::identity(), &mut visited_nodes)?;
+                self.visit_gltf_node(&node, &Isometry3::identity(), &mut visited_nodes)?;
             }
         }
 
         Ok(())
     }
 
-    pub fn point_with_name(&self, name: &str) -> Option<&Isometry<f32, UnitQuaternion<f32>, 3>> {
+    pub fn point_with_name(&self, name: &str) -> Option<&Isometry3<f32>> {
         self.map.get(name)
     }
 }
 
 impl Index<&str> for PointsOfInterest {
-    type Output = Isometry<f32, UnitQuaternion<f32>, 3>;
+    type Output = Isometry3<f32>;
     fn index(&self, index: &str) -> &Self::Output {
         self.point_with_name(index)
             .expect("Unrecognized PoI name given!")

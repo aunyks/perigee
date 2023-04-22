@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::config::PhysicsConfig;
+use crate::math::Transform3;
 use crate::perigee_gltf::extras::{GltfBodyType, GltfExtras, GltfOptimizedShape};
 use crate::perigee_gltf::util::access_gltf_bytes;
 use crate::physics::contact_event_mgmt::ContactEventManager;
@@ -11,7 +12,7 @@ use gltf::Node;
 use gltf::{accessor::DataType as GltfDataType, Gltf, Semantic as PrimitiveSemantic};
 use log::warn;
 use rapier3d::{
-    na::{Isometry, Point3, Quaternion, Translation3, UnitQuaternion, Vector3},
+    na::{Point3, Quaternion, Translation3, UnitQuaternion, Vector3},
     prelude::*,
 };
 use serde::{Deserialize, Serialize};
@@ -140,11 +141,16 @@ impl PhysicsWorld {
     fn visit_gltf_node(
         &mut self,
         node: &Node,
-        parent_isometry: &Isometry<f32, UnitQuaternion<f32>, 3>,
-        parent_scale: &Vector3<f32>,
-        gltf_bytes: &Vec<u8>,
+        gltf_blob: Option<&Vec<u8>>,
+        parent_transform: &Transform3<f32>,
         visited_nodes: &mut HashMap<usize, ()>,
     ) -> Result<(), PhysicsWorldInitError> {
+        let gltf_bytes = match gltf_blob {
+            Some(bytes) => bytes,
+            None => {
+                return Err(PhysicsWorldInitError::CantAccessBlob);
+            }
+        };
         let node_extra_data = match node.extras().as_ref() {
             Some(extra_data) => extra_data,
             None => return Err(PhysicsWorldInitError::PerigeeExtrasUndetected),
@@ -168,17 +174,16 @@ impl PhysicsWorld {
                 quaternion[2],
             )),
         );
-        let global_isometry = parent_isometry * object_isometry;
-        let global_scale = parent_scale.component_mul(&scale);
+        let global_transform = parent_transform
+            * Transform3 {
+                isometry: object_isometry,
+                scale,
+            };
+        let global_isometry = *global_transform.isometry();
+        let global_scale = global_transform.scale();
 
         for child_node in node.children() {
-            self.visit_gltf_node(
-                &child_node,
-                &global_isometry,
-                &global_scale,
-                gltf_bytes,
-                visited_nodes,
-            )?;
+            self.visit_gltf_node(&child_node, gltf_blob, &global_transform, visited_nodes)?;
         }
         if !node_extras.sim_settings.physics.enabled || visited_nodes.contains_key(&node.index()) {
             return Ok(());
@@ -204,8 +209,7 @@ impl PhysicsWorld {
             let base_scale = node_extras.sim_settings.physics.base_scale;
             let collider_silhouette = match node_extras.sim_settings.physics.optimized_shape {
                 GltfOptimizedShape::Cuboid => {
-                    let cuboid_half_dimensions =
-                        base_scale.component_mul(&Vector3::from(global_scale)) / 2.0;
+                    let cuboid_half_dimensions = base_scale.component_mul(&global_scale) / 2.0;
                     SharedShape::cuboid(
                         cuboid_half_dimensions.x,
                         cuboid_half_dimensions.y,
@@ -213,7 +217,7 @@ impl PhysicsWorld {
                     )
                 }
                 GltfOptimizedShape::Sphere => {
-                    let ball_dimensions = base_scale.component_mul(&Vector3::from(global_scale));
+                    let ball_dimensions = base_scale.component_mul(global_scale);
                     SharedShape::ball(ball_dimensions.x / 2.0)
                 }
                 GltfOptimizedShape::ConvexMesh => {
@@ -490,8 +494,7 @@ impl PhysicsWorld {
             let base_scale = node_extras.sim_settings.physics.base_scale;
             let sensor_silhouette = match node_extras.sim_settings.physics.optimized_shape {
                 GltfOptimizedShape::Cuboid => {
-                    let cuboid_half_dimensions =
-                        base_scale.component_mul(&Vector3::from(global_scale)) / 2.0;
+                    let cuboid_half_dimensions = base_scale.component_mul(global_scale) / 2.0;
                     SharedShape::cuboid(
                         cuboid_half_dimensions.x,
                         cuboid_half_dimensions.y,
@@ -499,7 +502,7 @@ impl PhysicsWorld {
                     )
                 }
                 GltfOptimizedShape::Sphere => {
-                    let ball_dimensions = base_scale.component_mul(&Vector3::from(scale));
+                    let ball_dimensions = base_scale.component_mul(global_scale);
                     SharedShape::ball(ball_dimensions.x / 2.0)
                 }
                 _ => return Err(PhysicsWorldInitError::CantAccessBlob),
@@ -521,22 +524,14 @@ impl PhysicsWorld {
     ///
     /// Note: Nodes that are children of others will be ignored.
     pub fn load_from_gltf(&mut self, gltf: &Gltf) -> Result<(), PhysicsWorldInitError> {
-        let gltf_bytes = match &gltf.blob {
-            Some(bytes) => bytes,
-            None => {
-                return Err(PhysicsWorldInitError::CantAccessBlob);
-            }
-        };
-
         let mut visited_nodes: HashMap<usize, ()> = HashMap::new();
         // Only loads the first scene
         if let Some(scene) = gltf.scenes().next() {
             for node in scene.nodes() {
                 self.visit_gltf_node(
                     &node,
-                    &Isometry::identity(),
-                    &Vector3::new(1.0, 1.0, 1.0),
-                    gltf_bytes,
+                    gltf.blob.as_ref(),
+                    &Transform3::identity(),
                     &mut visited_nodes,
                 )?;
             }

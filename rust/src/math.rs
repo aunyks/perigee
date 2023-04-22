@@ -1,4 +1,4 @@
-use rapier3d::na::{Isometry, UnitQuaternion, Vector3};
+use rapier3d::na::{one, Isometry3, RealField, Scalar, SimdValue, Vector3};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[inline]
@@ -65,4 +65,174 @@ where
         + Copy,
 {
     (num - start_min) * (end_max - end_min) / (start_max - start_min) + end_min
+}
+
+#[derive(Clone, Copy)]
+pub struct Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    pub(crate) isometry: Isometry3<T>,
+    pub(crate) scale: Vector3<T>,
+}
+
+impl<T> Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    pub fn identity() -> Self {
+        Self {
+            isometry: Isometry3::identity(),
+            scale: Vector3::new(one(), one(), one()),
+        }
+    }
+    pub fn scale(&self) -> &Vector3<T> {
+        &self.scale
+    }
+
+    pub fn isometry(&self) -> &Isometry3<T> {
+        &self.isometry
+    }
+}
+
+impl<T> Mul<Isometry3<T>> for Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Transform3<T>;
+
+    fn mul(self, rhs: Isometry3<T>) -> Self::Output {
+        Transform3 {
+            isometry: self.isometry
+                * Isometry3::from_parts(
+                    self.scale.component_mul(&rhs.translation.vector).into(),
+                    rhs.rotation,
+                ),
+            scale: self.scale,
+        }
+    }
+}
+
+impl<T> Mul<&Isometry3<T>> for Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Transform3<T>;
+
+    fn mul(self, rhs: &Isometry3<T>) -> Self::Output {
+        self * (*rhs)
+    }
+}
+
+impl<T> Mul<Isometry3<T>> for &Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Transform3<T>;
+
+    fn mul(self, rhs: Isometry3<T>) -> Self::Output {
+        (*self) * rhs
+    }
+}
+
+impl<T> Mul<&Isometry3<T>> for &Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Transform3<T>;
+
+    fn mul(self, rhs: &Isometry3<T>) -> Self::Output {
+        (*self) * (*rhs)
+    }
+}
+
+impl<T> Mul<Transform3<T>> for Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Transform3<T>;
+    fn mul(self, rhs: Transform3<T>) -> Self::Output {
+        Transform3 {
+            isometry: (self * rhs.isometry).isometry,
+            scale: self.scale.component_mul(&rhs.scale),
+        }
+    }
+}
+
+impl<T> Mul<&Transform3<T>> for Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Transform3<T>;
+    fn mul(self, rhs: &Transform3<T>) -> Self::Output {
+        self * (*rhs)
+    }
+}
+
+impl<T> Mul<Transform3<T>> for &Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Transform3<T>;
+    fn mul(self, rhs: Transform3<T>) -> Self::Output {
+        (*self) * rhs
+    }
+}
+
+impl<T> Mul<&Transform3<T>> for &Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Transform3<T>;
+    fn mul(self, rhs: &Transform3<T>) -> Self::Output {
+        (*self) * (*rhs)
+    }
+}
+
+impl<T> Mul<Vector3<T>> for Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: Vector3<T>) -> Self::Output {
+        // T * R * S: Scale first, rotate second, translate third
+        self.isometry * (self.scale.component_mul(&rhs))
+    }
+}
+
+impl<T> Mul<&Vector3<T>> for Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: &Vector3<T>) -> Self::Output {
+        // T * R * S: Scale first, rotate second, translate third
+        self.isometry * (*rhs)
+    }
+}
+
+impl<T> Mul<Vector3<T>> for &Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: Vector3<T>) -> Self::Output {
+        // T * R * S: Scale first, rotate second, translate third
+        (*self).isometry * rhs
+    }
+}
+
+impl<T> Mul<&Vector3<T>> for &Transform3<T>
+where
+    T: Scalar + SimdValue + RealField + Copy,
+{
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: &Vector3<T>) -> Self::Output {
+        // T * R * S: Scale first, rotate second, translate third
+        (*self).isometry * (*rhs)
+    }
 }
