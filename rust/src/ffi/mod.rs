@@ -1,6 +1,7 @@
 pub use crate::ffi::interface_commands::*;
 pub use crate::ffi::strings::*;
 
+pub mod bytes;
 pub mod interface_commands;
 pub mod strings;
 

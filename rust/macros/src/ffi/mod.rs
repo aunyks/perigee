@@ -246,6 +246,7 @@ pub fn ffi(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut expanded_impl_internals: TokenStream2 = expanded_impl_internals.into();
     let ffi_code: TokenStream2 = ffi_code.into();
+    // dbg!(quote!(#expanded_impl_internals).to_string());
     quote! {
         impl<'a> #bare_sim_type <'a> {
             #expanded_impl_internals
